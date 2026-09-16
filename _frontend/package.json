@@ -1,0 +1,26 @@
+{
+  "name": "@zifang/z-oss-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3004",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.1",
+    "antd": "^6.3.3",
+    "@ant-design/icons": "^6.1.0",
+    "axios": "^1.16.1",
+    "dayjs": "^1.11.10",
+    "@yuku123/z-oss-frontend-component": "^0.1.0",
+    "@yuku123/z-frontend-common": "^0.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^6.2.0"
+  }
+}

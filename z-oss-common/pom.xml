@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.yuku123</groupId>
+        <artifactId>z-oss</artifactId>
+
+        <version>1.0.2</version>
+    </parent>
+
+    <url>https://github.com/yuku123/z-oss</url>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>yuku123</id>
+            <name>yuku123</name>
+            <email>1340947819@qq.com</email>
+            <organization>z-team</organization>
+            <organizationUrl>https://github.com/yuku123</organizationUrl>
+            <timezone>+08:00</timezone>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/yuku123/z-oss.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/yuku123/z-oss.git</developerConnection>
+        <url>https://github.com/yuku123/z-oss</url>
+        <tag>HEAD</tag>
+    </scm>
+
+
+    <artifactId>z-oss-common</artifactId>
+    <name>z-oss-common</name>
+    <description>Shared enums, exceptions and constants for Z-OSS (Aliyun OSS / MinIO / Local storage abstraction).</description>
+
+    <dependencies>
+        <!--
+          z-oss-common 仅放 enum/exception/常量，不依赖任何 Spring 框架。
+          避免 web-starter 漏到下游模块。
+        -->
+    </dependencies>
+
+</project>

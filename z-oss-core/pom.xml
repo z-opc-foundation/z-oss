@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.yuku123</groupId>
+        <artifactId>z-oss</artifactId>
+
+        <version>1.0.2</version>
+    </parent>
+
+    <url>https://github.com/yuku123/z-oss</url>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>yuku123</id>
+            <name>yuku123</name>
+            <email>1340947819@qq.com</email>
+            <organization>z-team</organization>
+            <organizationUrl>https://github.com/yuku123</organizationUrl>
+            <timezone>+08:00</timezone>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/yuku123/z-oss.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/yuku123/z-oss.git</developerConnection>
+        <url>https://github.com/yuku123/z-oss</url>
+        <tag>HEAD</tag>
+    </scm>
+
+
+    <artifactId>z-oss-core</artifactId>
+    <name>z-oss-core</name>
+    <description>Z-OSS core: provider abstraction + business logic + Spring Boot auto-configuration + hooks for business layer integration.</description>
+
+    <!--
+      ⚠️  当前不在 aggregator 中（已临时排除）：
+       - 原因：依赖未发布的 com.zifang:z-ctc-core（TenantInitializer 接口）
+       - 恢复条件：z-ctc-core 上 Central 后，把 z-ctc-core 依赖切到 io.github.yuku123:z-ctc-core
+                   并取消 z-oss/pom.xml 中 z-oss-core 模块的注释
+    -->
+
+    <dependencies>
+        <!-- Log4j2 API (本模块 src/main/java 含 LogManager.getLogger 调用) -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-oss-common</artifactId>
+        </dependency>
+
+        <!-- 对齐 z-ctc-core：domain 层声明 z-boot starter 依赖，供 web 层 extend 模板使用 -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-boot-web-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-boot-datasource-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-util-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- 数据源 starter（已含 mybatis-plus + mysql） -->
+
+        <!-- 阿里云 OSS SDK（AliyunOssProvider 依赖） -->
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+                <version>3.17.4</version>
+            </dependency>
+
+    </dependencies>
+
+</project>

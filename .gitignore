@@ -1,0 +1,122 @@
+# ============ 构建产物 ============
+target/
+build/
+out/
+bin/
+dist/
+
+# ============ 类与字节码 ============
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+*.dll
+*.so
+*.dylib
+
+# ============ 日志与运行时 ============
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# ============ IDE 与编辑器 ============
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.project
+.classpath
+.settings/
+.idea_modules/
+*.swp
+*.swo
+
+# ============ OS ============
+.DS_Store
+*/.DS_Store
+**/.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============ Maven ============
+.flattened-pom.xml
+release.properties
+pom.xml.releaseBackup
+mvnw
+mvnw.cmd
+dependency-reduced-pom.xml
+*.lst
+
+# ============ Spring Boot 配置 ============
+application-*.yml
+application-*.yaml
+application-*.properties
+application-local.*
+application-dev.*
+
+# ============ Node / 前端 ============
+_frontend/node_modules/
+_frontend/node/node_modules/
+_frontend/dist/
+_frontend/.vite/
+_frontend/.cache/
+_frontend/.parcel-cache/
+_frontend/.next/
+_frontend/.nuxt/
+_frontend/.output/
+_frontend/coverage/
+_frontend/.npm/
+_frontend/.yarn/
+_frontend/.pnpm-store/
+_frontend/*.tsbuildinfo
+
+# ============ 测试与覆盖率 ============
+*.lcov
+*.gcov
+*.gcda
+*.gcno
+htmlcov/
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+coverage.xml
+junit-*.xml
+surefire-reports/
+test-output/
+
+# ============ Docker / 容器 ============
+docker-compose.override.yml
+
+# ============ Maven Central 发布凭证 (本地) ============
+.env
+.env.local
+.env.*.local
+.gnupg/
+.gpg-keyring/
+
+# ============ 系统与临时 ============
+*~
+*.bak
+*.tmp
+.cache/
+.tmp/
+.temp/
+
+# ============ 第三方运行时 ============
+zk-*/
+nacos/
+
+# ============ 工具会话缓存 ============
+.playwright-mcp/
+# ===== Git 本地备份目录 (历史塌缩用) =====
+.git.bak.*/
