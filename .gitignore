@@ -120,3 +120,11 @@ nacos/
 .playwright-mcp/
 # ===== Git 本地备份目录 (历史塌缩用) =====
 .git.bak.*/
+
+# ---------- node 二进制误放（不提交） ----------
+_frontend/node/node
+_frontend/node/npm
+_frontend/node/npm.cmd
+_frontend/node/npx
+_frontend/node/npx.cmd
+_frontend/node/
