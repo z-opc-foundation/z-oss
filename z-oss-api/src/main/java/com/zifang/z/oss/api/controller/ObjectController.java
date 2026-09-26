@@ -20,7 +20,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -265,7 +264,10 @@ public class ObjectController {
 
     /**
      * RESTful alias: GET /api/v1/bucket/stats?bucketName=
-     * 查询指定存储桶的统计信息(对象总数、占用空间、最近修改时间).
+     * 查询指定存储桶的统计信息(对象总数、占用空间、当前 provider).
+     * <p>
+     * bug-fix: key 必须跟 {@code OssObjectServiceImpl#getBucketStats} 放进 map 的名字一致 ——
+     * 这里曾读 {@code "totalObjects"}(map 里只有 {@code "objectCount"})⇒ get 出 null ⇒ NPE ⇒ 500.
      */
     @GetMapping("/bucket/stats")
     public Result<BucketStatsVO> getBucketStats(@RequestParam String bucketName,
@@ -273,12 +275,9 @@ public class ObjectController {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         Map<String, Object> stats = objectService.getBucketStats(bucketName, user.getId());
         BucketStatsVO vo = new BucketStatsVO();
-        vo.setTotalObjects(((Number) stats.get("totalObjects")).longValue());
+        vo.setObjectCount(((Number) stats.get("objectCount")).longValue());
         vo.setTotalSize(((Number) stats.get("totalSize")).longValue());
-        Object lastModified = stats.get("lastModified");
-        if (lastModified instanceof LocalDateTime) {
-            vo.setLastModified((LocalDateTime) lastModified);
-        }
+        vo.setActiveProvider((String) stats.get("activeProvider"));
         return Result.success(vo);
     }
 

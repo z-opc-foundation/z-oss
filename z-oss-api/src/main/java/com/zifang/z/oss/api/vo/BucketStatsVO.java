@@ -1,22 +1,20 @@
 package com.zifang.z.oss.api.vo;
 
-import java.time.LocalDateTime;
-
 /**
  * 存储桶统计视图对象 (用于 getBucketStats)
  */
 public class BucketStatsVO {
 
-    private Long totalObjects;
+    private Long objectCount;
     private Long totalSize;
-    private LocalDateTime lastModified;
+    private String activeProvider;
 
-    public Long getTotalObjects() {
-        return totalObjects;
+    public Long getObjectCount() {
+        return objectCount;
     }
 
-    public void setTotalObjects(Long totalObjects) {
-        this.totalObjects = totalObjects;
+    public void setObjectCount(Long objectCount) {
+        this.objectCount = objectCount;
     }
 
     public Long getTotalSize() {
@@ -27,11 +25,11 @@ public class BucketStatsVO {
         this.totalSize = totalSize;
     }
 
-    public LocalDateTime getLastModified() {
-        return lastModified;
+    public String getActiveProvider() {
+        return activeProvider;
     }
 
-    public void setLastModified(LocalDateTime lastModified) {
-        this.lastModified = lastModified;
+    public void setActiveProvider(String activeProvider) {
+        this.activeProvider = activeProvider;
     }
 }
