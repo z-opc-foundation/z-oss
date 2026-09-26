@@ -70,7 +70,7 @@
         <aliyun-oss.version>3.17.4</aliyun-oss.version>
         <knife4j.version>4.1.0</knife4j.version>
         <log4j.version>2.17.2</log4j.version>
-        <z-boot.version>1.0.3</z-boot.version>
+        <z-boot.version>1.0.16</z-boot.version>
         <z-util.version>1.0.9</z-util.version>
     </properties>
 
