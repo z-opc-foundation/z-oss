@@ -18,7 +18,7 @@
 
     <groupId>io.github.yuku123</groupId>
     <artifactId>z-oss</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <packaging>pom</packaging>
     <name>z-oss (Object Storage Aggregator)</name>
     <description>Z-OSS: A pluggable object storage abstraction layer (Aliyun OSS / MinIO / Local) for Spring Boot.</description>
