@@ -4,8 +4,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- z-oss 自包含 parent — 不依赖 monorepo 内部 parent,
-         改造为 io.github.yuku123 namespace (Maven Central 命名空间) -->
+    <!-- 消费入口统一走 z-boot-parent（1.0.19 起全组织口径，z-cache 试点量出来的那套步骤）：
+         它继承第三方地板 z-boot-dependencies、import 兄弟仓 fleet，并下发 Java 8 的 pluginManagement
+         （compiler/surefire/编码/-parameters）。本仓原来是"没有 parent + 自家一张版本属性表"，
+         表里与父链同值的格这次全删，逐条判据见下面 <properties> 的账。
+         ⚠ relativePath 必须留空：parent 不在磁盘上，在 repo1。 -->
+    <parent>
+        <groupId>io.github.yuku123</groupId>
+        <artifactId>z-boot-parent</artifactId>
+        <version>1.0.19</version>
+        <relativePath/>
+    </parent>
+
     <groupId>io.github.yuku123</groupId>
     <artifactId>z-oss</artifactId>
     <version>1.0.3</version>
@@ -57,83 +67,126 @@
     </modules>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <compile.version>8</compile.version>
-        <reversion>1.0.0</reversion>
-
-        <!-- 内部依赖版本 -->
-        <z-oss.version>1.0.3</z-oss.version>
-        <!-- 2026-09-28「同坐标单版本」：2.7.12 → 2.7.18（2.7 线最后一版，Java 8 可用），
-             与 z-boot-dependencies 1.0.18 / z-opc 根 pom 同一口径；12→18 含 CVE 修复，纯上行。 -->
-        <spring-boot.version>2.7.18</spring-boot.version>
-        <druid.version>1.2.18</druid.version>
-        <aliyun-oss.version>3.17.4</aliyun-oss.version>
-        <knife4j.version>4.1.0</knife4j.version>
+        <!-- 版本口径由 parent 下发。2026-09-29 迁移删掉的键，逐条按**坐标**判"供不供"
+             （parent_preflight 的第 2/5 节；键名对不上不等于坐标没人管）：
+               maven.compiler.source/target=8、project.build.sourceEncoding=UTF-8、compile.version=8
+                   → 父链 properties 逐字相同（z-boot-parent/pom.xml:56-59），且 compiler 的
+                     source/target/encoding/-parameters 由它的 pluginManagement 下发 ⇒ 本仓那条
+                     compiler 声明整块删掉，compile.version 随之失去唯一读者（z-cache 同款悬空账）。
+               spring-boot.version=2.7.18 → 父链同为 2.7.18，2026-09-28「同坐标单版本」那一格没丢。
+                 键删了但 pluginManagement 里那条 <version> 照旧写着 ${spring-boot.version}（值现在由
+                 parent 下发）—— 删掉整块会让 z-oss-api 的插件声明失去本仓兜底，central_pom_scan 报 E 类。
+               z-util.version=1.0.13、z-oss.version=1.0.3 → fleet 按坐标供 z-util-core 与
+                 z-oss-api/common/core，面值同为 1.0.13 / 1.0.3 ⇒ 键与 DM 条目一起删
+                 （自家那几条改成 ${project.version}，见下面 dependencyManagement 的注释）。
+               aliyun-oss.version=3.17.4 → 地板按坐标供 com.aliyun.oss:aliyun-sdk-oss 3.17.4，同值。
+               knife4j.version=4.1.0 → 地板的 knife4j.version 是 3.0.3，但它管的是 knife4j-spring-* 那一族；
+                 本仓用的 knife4j-openapi3-spring-boot-starter / -core / -openapi3-ui 在地板是
+                 ${knife4j-openapi3.version}=4.1.0，逐坐标同值 ⇒ 删键不降级（这正是"按键名判"会踩的坑）。
+               z-boot.version=1.0.17 → parent 按坐标供 z-boot-web-starter / z-boot-datasource-starter
+                 1.0.19（z-boot 自家 starter 只能与 z-boot 同版本发行，这一格是刻意跟随，不是漂移；
+                 实测 repo1 上 z-boot:1.0.19 与 z-boot-web-starter:1.0.19 的 <parent> 计数都是 0，读得动）。
+               druid.version=1.2.18、reversion=1.0.0 → 死键：全仓没有任何一处 ${...} 引用它们
+                 （druid 实际由 z-boot-datasource-starter 传递带入，面值随地板 1.2.23）。
+             必须留着的只有 log4j.version 一格，理由写在它下面。 -->
+        <!-- ⚠ 本仓刻意与地板不同值：地板把 log4j-api/core/jul/slf4j-impl 四条**直接**钉在 2.25.4，
+             只留着这个属性键顶不住（继承来的直接 DM 优先级高于本仓 import 的 BOM），必须按坐标逐条写
+             直接条目压回 2.17.2 —— 本仓 tree 里这一族今天全是 2.17.2（含 spring-boot 2.7.18 的
+             starter-log4j2 带进来的 core/jul/slf4j-impl），删掉就是悄悄换日志实现。抬版本是另一个
+             决定（要连 Java 8 字节码一起验），不在这一刀里顺手做。 -->
         <log4j.version>2.17.2</log4j.version>
-        <z-boot.version>1.0.17</z-boot.version>
-        <z-util.version>1.0.13</z-util.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Spring Boot BOM -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+            <!-- Spring Boot BOM 的 import 删掉：地板自己就 import spring-boot-dependencies:2.7.18
+                 （z-boot-dependencies/pom.xml:223-234），再引一份同版本只会造成 dm 打架。 -->
 
-            <!-- 内部模块：全部从 com.zifang 迁移到 io.github.yuku123 namespace -->
+            <!-- 自家 4 个 reactor 坐标钉 ${project.version}（README「消费模型」步骤 4）。这一格不是装饰：
+                 继承来的 DM 会改写**传递依赖**的版本，而 fleet 里 z-oss 那一格钉的是 repo1 上的已发布件 ⇒
+                 不写这几条，下次抬根 <version> 时 z-oss-api 会把旧版 z-oss-core 字节码打在自己的包里
+                 （z-cache 实测过：1.3.6 的包里进了 1.3.5 的 common）。当前 fleet 面值与 HEAD 同为 1.0.3，
+                 所以这几条今天不改 tree，它是"下次抬版本不踩坑"的前提。 -->
+            <dependency>
+                <groupId>io.github.yuku123</groupId>
+                <artifactId>z-oss</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-oss-common</artifactId>
-                <version>${z-oss.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-oss-core</artifactId>
-                <version>${z-oss.version}</version>
-            </dependency>
-
-            <!-- z-boot starters -->
-            <dependency>
-                <groupId>io.github.yuku123</groupId>
-                <artifactId>z-boot-web-starter</artifactId>
-                <version>${z-boot.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yuku123</groupId>
-                <artifactId>z-boot-datasource-starter</artifactId>
-                <version>${z-boot.version}</version>
+                <artifactId>z-oss-api</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
-            <!-- z-util -->
-            <dependency>
-                <groupId>io.github.yuku123</groupId>
-                <artifactId>z-util-core</artifactId>
-                <version>${z-util.version}</version>
-            </dependency>
+            <!-- z-boot-web-starter / z-boot-datasource-starter / z-util-core / aliyun-sdk-oss /
+                 knife4j-openapi3-spring-boot-starter 五条 managed 条目整批删掉：父链按同样的坐标供值，
+                 z-util-core 1.0.13、aliyun-sdk-oss 3.17.4、knife4j-openapi3-* 4.1.0 三组逐字同值，
+                 z-boot-* 刻意随 parent 抬到 1.0.19。 -->
 
-            <!-- 第三方 -->
-            <dependency>
-                <groupId>com.aliyun.oss</groupId>
-                <artifactId>aliyun-sdk-oss</artifactId>
-                <version>${aliyun-oss.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.xiaoymin</groupId>
-                <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
-                <version>${knife4j.version}</version>
-            </dependency>
+            <!-- log4j2 一族按坐标逐条压回 ${log4j.version}（见上面那条注释；这四条是两侧
+                 dependency:tree 量出来的，不是抄的）。 -->
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-api</artifactId>
                 <version>${log4j.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-jul</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+
+            <!-- 全树唯一一处**降档**（两侧 dependency:tree 量出来的，不是推演）：地板把 mybatis-spring
+                 钉在 ${mybatis-spring.version}=2.0.6，而 mybatis-plus-boot-starter 3.5.7（与地板同值）
+                 自带、本仓基线实测跑的是 2.1.2。继承来的直接 DM 会把这个低值打到传递位置 ⇒ 必须按坐标
+                 写直接条目压回。要不要由地板统一管，是另一件事（z-kb 同一格也是这么留的，待裁）。 -->
+            <dependency>
+                <groupId>org.mybatis</groupId>
+                <artifactId>mybatis-spring</artifactId>
+                <version>2.1.2</version>
+            </dependency>
+
+            <!-- ===== 迁移后 tree 的账（基线 116 坐标 / 迁移后 114；两侧同一条命令、同一个
+                 grep -oE 'g:a:jar:v'，基线取 HEAD 的 worktree，绝不手抄）=====
+                 降档 0 条：唯一一处（mybatis-spring 2.1.2→2.0.6）已按坐标压回，见上面那条。
+                 升档 24 条，全部是"删掉自家属性/条目后由地板面值接管"：
+                   spring-* 5.3.31→5.3.39（11 条）、jackson-* 2.13.5→2.18.6（7 条）—— 地板把
+                     spring-framework-bom / jackson-bom 排在 spring-boot-dependencies 之前，
+                     本仓以前吃的是 spring-boot 2.7.18 的自带面值；
+                   druid + druid-spring-boot-starter 1.2.20→1.2.23、mysql-connector-j 8.0.33→8.4.0、
+                   commons-lang3 3.12.0→3.18.0；
+                   z-boot-web/datasource-starter 1.0.17→1.0.19（与 parent 同格发行，刻意跟随）。
+                 新增 1 条 com.google.protobuf:protobuf-java:3.25.5 —— 它是 mysql-connector-j 8.4.0
+                   自带的孩子（8.0.33 那版没有），不是本仓新引入的实现。
+                 消失 3 条 ch.qos.logback:logback-classic / logback-core 1.2.12、
+                   org.apache.logging.log4j:log4j-to-slf4j 2.17.2 —— 地板对 spring-boot-starter-logging
+                   写了 *:* 通配 exclusion（z-boot-dependencies/pom.xml:500-510）。**按作用域判**：
+                   本仓没有 src/test（0 支测试），现读 logback*.xml = 0 个、代码里 0 处
+                   org.slf4j / ch.qos.logback 引用、12 处 org.apache.logging.log4j ⇒ 生产实现一直是
+                   log4j2（starter-log4j2 + log4j-slf4j-impl 2.17.2 两侧都在，本仓已按坐标压住），
+                   迁移前反而是 logback 与 log4j-slf4j-impl 两条 slf4j binding 同时躺在类路径上，
+                   这 3 条消失等于把那条重复 binding 摘掉 ⇒ **不补任何依赖**。
+                   jul-to-slf4j 1.7.36 不走 starter-logging 那条路，两侧都在。 -->
         </dependencies>
     </dependencyManagement>
 
@@ -143,6 +196,11 @@
     <build>
         <pluginManagement>
             <plugins>
+                <!-- 这一条**不能跟着属性一起删**：z-oss-api 直接声明 spring-boot-maven-plugin 却不写
+                     version，本仓 pom 链里就没兜底了 ⇒ central_pom_scan 报 E 类（"无 version 且父链无兜底"，
+                     它只看本仓链、不跟 repo1 上的外部 parent 走）。键删了但 <version> 留着：
+                     ${spring-boot.version} 现在由 parent 的 properties 供（2.7.18，与本仓迁移前逐字相同）。
+                     执行块保持原样（repackage），z-oss-api 自己那份 classifier=exec 照旧生效。 -->
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
@@ -159,15 +217,11 @@
         </pluginManagement>
 
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <source>${compile.version}</source>
-                    <target>${compile.version}</target>
-                </configuration>
-            </plugin>
+            <!-- maven-compiler-plugin 那条声明（3.11.0 + source/target ${compile.version}）整块删掉：
+                 parent 的 pluginManagement 供同一个 3.11.0，并下发 source/target 8 + UTF-8 +
+                 -parameters（z-boot-parent/pom.xml:207-221）。实测产出的 class 仍是 major 52。
+                 ⚠ -parameters 是**合并**进来的，本仓删掉声明也挡不住（z-gw 试点实测），换的只是
+                 "谁写这份配置"。 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
@@ -180,6 +234,44 @@
                 <configuration>
                     <generateBackupPoms>false</generateBackupPoms>
                 </configuration>
+            </plugin>
+            <!-- 发布形状（README「消费模型」步骤 7）。z-oss 中央上那一版（1.0.3）发的是**自包含 raw pom**：
+                 实测根 pom `z-oss-1.0.3.pom` 的 <parent> 计数 0、带 <properties> 与 <dependencyManagement>；
+                 叶子 pom 带着 <parent>z-oss:1.0.3</parent> 且依赖**不写版本**，全靠根那份 DM 兜着。
+                 加了 <parent> 之后两件事同时成立：① 根 raw pom 会带着 z-boot-parent:1.0.19 出厂，
+                 对外面值就挂在 parent 链上（本仓以前的口径是自包含，不能这么漂）；② 这次把根 DM 里
+                 与父链同值的条目都删了，扁平叶子拿不到版本可继承，只有 flatten 才能把继承来的面值写死。
+                 ⇒ 常开 flatten oss + updatePomFile（不挂 central profile：不带 -P central 的 `mvn install`
+                 会把带 parent 的废 pom 装进本地仓）。z-boot-parent 自己那条 flatten 是
+                 <inherited>false</inherited>（z-boot-parent/pom.xml:257-264），**不会**下发给本仓，
+                 所以这一条必须自己写。版本钉 1.5.0：门禁机 Maven 3.6.0 实测只有 1.5.0 rc=0。
+                 代价是叶子件的发布形状从"带 parent 的 raw"变成自包含（与 z-cache/z-config 迁移后一致，
+                 实测中央上 z-config-core:1.0.8 是 <parent> 计数 0、依赖带死版本）。 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <inherited>true</inherited>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>oss</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

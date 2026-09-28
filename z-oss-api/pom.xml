@@ -65,12 +65,12 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- knife4j-openapi3 由 z-oss 自行暴露 /doc.html -->
+        <!-- knife4j-openapi3 由 z-oss 自行暴露 /doc.html；版本由父链供
+             （地板按坐标供 knife4j-openapi3-* 4.1.0，与本仓迁移前同值） -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
-                <version>4.1.0</version>
-            </dependency>
+        </dependency>
 
     </dependencies>
 
