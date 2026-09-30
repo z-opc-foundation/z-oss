@@ -128,3 +128,7 @@ _frontend/node/npm.cmd
 _frontend/node/npx
 _frontend/node/npx.cmd
 _frontend/node/
+
+/.cache/
+**/__pycache__/
+*.pyc
