@@ -325,7 +325,7 @@ logback-classic / logback-core / log4j-to-slf4j 会从类路径静默消失。�
 
 ## 🐳 部署
 
-**镜像构建资产在仓库根的 [`_deploy/Dockerfile`](_deploy/Dockerfile)**，不在 `_doc/002_deploy/`
+**镜像构建资产在仓库根的 [`_deploy/Dockerfile`](_deploy/Dockerfile)**，不在 [`_doc/002_deploy/`](_doc/002_deploy/)
 （那一层现在只放 SQL）。这是本仓与组织文档收口规范不一致的地方之一，按现状记录如下：
 
 ```
@@ -335,7 +335,7 @@ logback-classic / logback-core / log4j-to-slf4j 会从类路径静默消失。�
 └── _doc/002_deploy/init/     # 只有 db.sql + oss.sql
 ```
 
-没有 `docker-compose*.yml`，没有 `k8s/`，没有 `Makefile`，`_doc/002_deploy/` 里也没有部署说明文档。
+没有 `docker-compose*.yml`，没有 `k8s/`，没有 `Makefile`，[`_doc/002_deploy/`](_doc/002_deploy/) 里也没有部署说明文档。
 
 `_deploy/Dockerfile` **当前不可直接用**，先修再跑，实测到三处问题：
 
@@ -407,10 +407,10 @@ MIT，见仓库根 [`LICENSE`](LICENSE)（版权行 `Copyright (c) 2026 z-opc-fo
   - [`package.sh`](_doc/003_script/package.sh) — `mvn clean` + `mvn install -DskipTests=true`
   - [`deploy_maven_center.sh`](_doc/003_script/deploy_maven_center.sh) — `publish` / `verify` / `gpg-init` / `readme` / `help`，凭证从仓库根 `.env` 读
   - [`install-settings.sh`](_doc/003_script/install-settings.sh) — 往 `~/.m2/settings.xml` 注入 `server id="central"`（写 `${env.*}` 占位符，不落明文）
-- [`_doc/004_skill/`](_doc/004_skill/) — AI skill 定义（目前为空目录，暂无 skill）
+- `_doc/004_skill/` — AI skill 定义（目前为空目录，暂无 skill）
 
 与规范不一致、但按现状如实记录的两处：Dockerfile 在仓库根 [`_deploy/`](_deploy/) 而不是
-`_doc/002_deploy/`；仓库根另有一个空目录 [`sql/`](sql/)，git 未跟踪其中任何文件，真正的 DDL 在
+[`_doc/002_deploy/`](_doc/002_deploy/)；仓库根另有一个空目录 [`sql/`](sql/)，git 未跟踪其中任何文件，真正的 DDL 在
 `_doc/002_deploy/init/`。
 
 _Maintained by the z-opc-foundation organization._
