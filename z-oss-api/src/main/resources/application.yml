@@ -12,7 +12,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://rm-bp108uqlgwn712k54ho.mysql.rds.aliyuncs.com:3306/oc?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: zifang
-    password: Hhzemol!
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     druid:
       initial-size: 5
       min-idle: 5
@@ -35,7 +35,7 @@ z:
         host: rm-bp108uqlgwn712k54ho.mysql.rds.aliyuncs.com
         port: 3306
         username: zifang
-        password: Hhzemol!
+        password: ${Z_BASE_DB_DEFAULT_PASSWORD:}
         database: oc
       oss:
         database: oc
