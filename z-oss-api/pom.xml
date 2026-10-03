@@ -55,6 +55,15 @@
             <artifactId>z-oss-core</artifactId>
         </dependency>
 
+        <!-- 2026-10-03: OssAdminController (自 z-opc main-starter 平移) 用
+             z-ctc-sso 的 SsoContext/UserInfo 做操作人审计; z-util-core 的 Result 泛型容器
+             (经 z-oss-core 传递已有, sso 需显式). provided: 作为库不绑死宿主的认证实现. -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-ctc-sso</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
