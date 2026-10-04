@@ -83,7 +83,7 @@ public class LocalOssProvider implements OssProvider {
 
     @Override
     public List<OssObjectSummary> listObjects(String bucket, String prefix, int maxKeys) {
-        Path dir = Paths.get(resolveLocalRoot(), bucket);
+        Path dir = resolveBucketDir(bucket);
         if (!Files.exists(dir)) {
             return Collections.emptyList();
         }
@@ -123,7 +123,7 @@ public class LocalOssProvider implements OssProvider {
         if (bucket == null || bucket.isEmpty()) {
             throw new IOException("bucket name must not be empty");
         }
-        Path dir = Paths.get(resolveLocalRoot(), bucket);
+        Path dir = resolveBucketDir(bucket);
         if (Files.exists(dir)) {
             throw new IOException("Bucket already exists: " + bucket);
         }
@@ -134,7 +134,7 @@ public class LocalOssProvider implements OssProvider {
 
     @Override
     public void deleteBucket(String bucket) throws IOException {
-        Path dir = Paths.get(resolveLocalRoot(), bucket);
+        Path dir = resolveBucketDir(bucket);
         if (!Files.exists(dir)) {
             return;
         }
@@ -161,7 +161,12 @@ public class LocalOssProvider implements OssProvider {
         if (bucket == null) {
             return false;
         }
-        return Files.exists(Paths.get(resolveLocalRoot(), bucket));
+        try {
+            return Files.exists(resolveBucketDir(bucket));
+        } catch (IllegalArgumentException e) {
+            // 越界的桶名一律按"不存在"处理，保持本方法不抛异常的契约
+            return false;
+        }
     }
 
     @Override
@@ -184,7 +189,7 @@ public class LocalOssProvider implements OssProvider {
 
     @Override
     public void setBucketAcl(String bucket, String acl) {
-        Path aclFile = Paths.get(resolveLocalRoot(), bucket, ".acl");
+        Path aclFile = resolveBucketDir(bucket).resolve(".acl");
         try {
             Files.write(aclFile, (acl == null ? BucketAcl.PRIVATE.getCode() : acl)
                     .getBytes(StandardCharsets.UTF_8));
@@ -195,7 +200,13 @@ public class LocalOssProvider implements OssProvider {
 
     @Override
     public String getBucketAcl(String bucket) {
-        Path aclFile = Paths.get(resolveLocalRoot(), bucket, ".acl");
+        Path aclFile;
+        try {
+            aclFile = resolveBucketDir(bucket).resolve(".acl");
+        } catch (IllegalArgumentException e) {
+            // 越界的桶名按默认 ACL 处理，与下方读文件失败时的行为一致
+            return BucketAcl.PRIVATE.getCode();
+        }
         if (!Files.exists(aclFile)) {
             return BucketAcl.PRIVATE.getCode();
         }
@@ -217,5 +228,27 @@ public class LocalOssProvider implements OssProvider {
         } catch (Exception e) {
             throw new RuntimeException("Cannot resolve FileStorageEngine.rootPath", e);
         }
+    }
+
+    /**
+     * 把桶名解析为受约束的桶目录。
+     *
+     * <p>原来这里是 {@code Paths.get(resolveLocalRoot(), bucket)}，对 bucket 零校验，
+     * 而 bucket 同样来自 HTTP 的 {@code @RequestParam}。最严重的是 {@code deleteBucket}：
+     * 它会 {@code Files.walk} 后逐个 {@code deleteIfExists}，即
+     * {@code deleteBucket("../../some-dir")} 可以<b>递归删除存储根目录之外的整棵目录树</b>
+     * （只要该目录通过了"非空检查"）。</p>
+     *
+     * <p>{@code resolve} 遇到绝对路径会直接丢弃 base，故 {@code bucket=/etc} 这类也必须拦。</p>
+     *
+     * @throws IllegalArgumentException 桶名越出存储根目录，或指向根目录本身
+     */
+    private Path resolveBucketDir(String bucket) {
+        Path root = Paths.get(resolveLocalRoot()).toAbsolutePath().normalize();
+        Path dir = root.resolve(bucket == null ? "" : bucket).normalize();
+        if (dir.equals(root) || !dir.startsWith(root)) {
+            throw new IllegalArgumentException("Illegal bucket name, escapes storage root: " + bucket);
+        }
+        return dir;
     }
 }

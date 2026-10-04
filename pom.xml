@@ -95,6 +95,11 @@
              starter-log4j2 带进来的 core/jul/slf4j-impl），删掉就是悄悄换日志实现。抬版本是另一个
              决定（要连 Java 8 字节码一起验），不在这一刀里顺手做。 -->
         <log4j.version>2.17.2</log4j.version>
+
+        <!-- 本仓此前零测试（扫测 tests=0，4 个子模块无任何 surefire 报告），
+             父链 z-boot-parent:1.0.21 的 DM 也不供 junit，故自留版本键。
+             取 5.10.2 与 z-kb 同版本，两仓都是 JDK8 目标。 -->
+        <junit.version>5.10.2</junit.version>
     </properties>
 
     <dependencyManagement>
@@ -191,6 +196,15 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- 全仓统一测试台（写在根 <dependencies> 上，所有子模块自动继承）：
+             子模块一律不再各自声明 junit，版本由上面的 junit.version 统一下发。
+             test 域，不进发布件的运行时 classpath。 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
