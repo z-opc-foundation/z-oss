@@ -373,6 +373,14 @@
                             <publishingServerId>central</publishingServerId>
                             <tokenAuth>true</tokenAuth>
                             <autoPublish>true</autoPublish>
+                            <!-- 本插件不认 maven.deploy.skip，没排除的模块照样进 bundle
+                                 （实测结论见 z-schedule/pom.xml 同位置注释）⇒ 不可发布的模块点名列出。
+                              · 前端打包聚合器（packaging=pom + frontend-maven-plugin）：产物只是把 dist 复制进
+                                  对应 -web 模块的中间步骤，不是任何别仓可引的构件。目录名是 _frontend，
+                                  而 excludeArtifacts 按 artifactId 匹配 ⇒ 写的是 z-oss-frontend。 -->
+                            <excludeArtifacts>
+                                <excludeArtifact>z-oss-frontend</excludeArtifact>
+                            </excludeArtifacts>
                             <waitUntil>uploaded</waitUntil>
                             <waitMaxTime>1800</waitMaxTime>
                             <waitPollingInterval>10</waitPollingInterval>
