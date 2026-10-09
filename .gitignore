@@ -132,3 +132,4 @@ _frontend/node/
 /.cache/
 **/__pycache__/
 *.pyc
+_frontend/**/node_modules/
