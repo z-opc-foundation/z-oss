@@ -26,7 +26,7 @@ export const menuItems = [
     { key: '/z-oss/user', label: '用户管理', icon: <UserOutlined /> },
 ]
 
-export const routeTable = [
+export const routes = [
     { path: '/z-oss/home', Component: HomePage },
     { path: '/z-oss/dashboard', Component: Dashboard },
     { path: '/z-oss/bucket', Component: BucketList },
