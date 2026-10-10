@@ -154,7 +154,7 @@ export default function AppLayout() {
                         borderBottom: '1px solid #3d4f66',
                     }}
                 >
-                    <h3 style={{margin: 0, fontSize: collapsed ? 16 : 24}}>Z-OSS</h3>
+                    <img src="/icon.png" alt="OSS" style={{width: 28, height: 28, objectFit: "cover", borderRadius: 6}}/><span style={{fontSize: 16, fontWeight: 600, color: 'white'}}>OSS</span>
                     {!collapsed && <p style={{margin: '5px 0 0', fontSize: 12, color: '#8fa0b9'}}>对象存储管理</p>}
                 </div>
                 <Menu
