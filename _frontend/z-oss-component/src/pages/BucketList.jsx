@@ -44,7 +44,7 @@ export default function BucketList() {
     }
 
     const goToObjects = (bucketName) => {
-        navigate(`/objects/${bucketName}`)
+        navigate(`/z-oss/objects/${bucketName}`)
     }
 
     const showEditDialog = (bucket) => {

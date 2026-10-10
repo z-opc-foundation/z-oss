@@ -118,10 +118,10 @@ export default function Dashboard() {
                 <Col span={12}>
                     <Card title="快速操作">
                         <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
-                            <Button type="primary" icon={<PlusOutlined/>} onClick={() => navigate('/buckets')}>
+                            <Button type="primary" icon={<PlusOutlined/>} onClick={() => navigate('/z-oss/buckets')}>
                                 创建存储桶
                             </Button>
-                            <Button type="success" icon={<UploadOutlined/>} onClick={() => navigate('/buckets')}>
+                            <Button type="success" icon={<UploadOutlined/>} onClick={() => navigate('/z-oss/buckets')}>
                                 上传文件
                             </Button>
                         </div>
