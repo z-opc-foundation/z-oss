@@ -14,6 +14,7 @@ export {default as BucketList} from './pages/BucketList'
 export {default as ObjectList} from './pages/ObjectList'
 export {default as UserManage} from './pages/UserManage'
 import HomePage from './pages/HomePage'
+import OssApp from './pages/OssApp.jsx'
 
 /** 菜单 + 路由清单（lead 008 §10/§14/§16 批量落地）。App 壳在 suit 侧组装。 */
 export const appMeta = { title: 'z-oss', short: 'z-oss' }
@@ -32,6 +33,7 @@ export const routes = [
     { path: '/z-oss/bucket', Component: BucketList },
     { path: '/z-oss/object', Component: ObjectList },
     { path: '/z-oss/user', Component: UserManage },
+    { path: '/z-oss/:rest*', Component: OssApp },
 ]
 
 export { default as HomePage } from './pages/HomePage'
