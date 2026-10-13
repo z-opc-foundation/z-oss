@@ -7,6 +7,15 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+  servlet:
+    multipart:
+      # 对象存储的上传默认卡在 1MB，传个稍大的附件就 413。放到 200MB ——
+      # 真要传更大的走分片接口，单片本来就该控制在这个量级。
+      max-file-size: 200MB
+      max-request-size: 200MB
+      # 不落临时目录：分片接口的流直接进 provider，落盘只会多占一份空间
+      # （FileStorageEngine 自己已经边读边写目标文件，不需要再缓存一份）
+      file-size-threshold: 0B
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver

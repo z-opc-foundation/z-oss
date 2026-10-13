@@ -155,6 +155,94 @@ CREATE TABLE IF NOT EXISTS `oss_object`
 )
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='对象元数据表';
 
+-- 分片上传会话表。local 后端的分片数据暂存在文件系统（root/.zmultipart/<uploadId>/），
+-- 这张表记的是会话元数据：谁开的、归并到哪个 key、什么时候过期。
+-- ⚠ 当前代码只保证 complete/abort 会正确落盘/清目录，**没有做过期分片的巡检清理** ——
+-- 客户端开了分片就断线不调 abort 时，分片会一直占着盘，需要靠运维定期清 root/.zmultipart。
+CREATE TABLE IF NOT EXISTS `oss_multipart`
+(
+    `id`
+    BIGINT
+    NOT
+    NULL
+    AUTO_INCREMENT
+    COMMENT
+        '主键',
+    `upload_id`
+    VARCHAR
+(
+    128
+) NOT NULL COMMENT '分片上传会话ID',
+    `bucket_id`
+    BIGINT
+    NOT NULL
+    COMMENT
+        '桶ID',
+    `object_key`
+    VARCHAR
+(
+    512
+) NOT NULL COMMENT '归并后的对象键',
+    `user_id` BIGINT NOT NULL COMMENT '发起者ID',
+    `part_size` BIGINT COMMENT '分片大小（字节）',
+    `total_parts` INT COMMENT '总分片数',
+    `uploaded_parts` INT NOT NULL DEFAULT 0 COMMENT '已上传分片数',
+    `status`
+    TINYINT NOT NULL
+    DEFAULT 0 COMMENT '状态 0进行中 1已完成 2已放弃',
+    `expire_time` DATETIME NOT NULL COMMENT '过期时间',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY
+(
+    `id`
+),
+    UNIQUE KEY `uk_upload_id`
+(
+    `upload_id`
+),
+    KEY `idx_expire_status`
+(
+    `status`,
+    `expire_time`
+)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分片上传会话表';
+
+-- 分片表。归并前记下每片的 etag 与大小，客户端少传或重传都能对出来。
+CREATE TABLE IF NOT EXISTS `oss_part`
+(
+    `id`
+    BIGINT
+    NOT
+    NULL
+    AUTO_INCREMENT
+    COMMENT
+        '主键',
+    `multipart_id`
+    BIGINT
+    NOT NULL
+    COMMENT
+        '分片会话ID',
+    `part_number`
+    INT NOT NULL COMMENT '分片序号，从1开始',
+    `etag`
+    VARCHAR
+(
+    128
+) COMMENT '分片校验和',
+    `size` BIGINT NOT NULL DEFAULT 0 COMMENT '分片大小',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY
+(
+    `id`
+),
+    UNIQUE KEY `uk_multipart_part`
+(
+    `multipart_id`,
+    `part_number`
+)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分片表';
+
 -- 初始化测试用户
 INSERT INTO `oss_user` (`username`, `access_key`, `secret_key`)
 VALUES ('admin', 'zossadmin', 'zossadmin123456');

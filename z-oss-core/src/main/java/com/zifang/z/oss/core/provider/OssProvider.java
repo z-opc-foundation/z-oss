@@ -104,4 +104,138 @@ public interface OssProvider {
      * 获取桶 ACL
      */
     String getBucketAcl(String bucket);
+
+    // ==================== 服务端复制 / 批量 / 范围读 ====================
+
+    /**
+     * 服务端复制对象（同桶改名走这个，不该由客户端下载再上传一遍）
+     *
+     * @return 目标对象元数据
+     */
+    default OssObjectSummary copyObject(String sourceBucket, String sourceKey,
+                                        String destBucket, String destKey) throws IOException {
+        try (InputStream in = getObject(sourceBucket, sourceKey)) {
+            OssObjectSummary stat = statObject(sourceBucket, sourceKey);
+            return putObject(destBucket, destKey, in,
+                    stat == null || stat.getSize() == null ? 0 : stat.getSize(),
+                    stat == null ? null : stat.getContentType());
+        }
+    }
+
+    /**
+     * 批量删除对象，单个失败不中断整批（语义同 S3 DeleteObjects 的静默模式）
+     *
+     * @return 实际删除的 key 列表
+     */
+    default List<String> batchDeleteObjects(String bucket, List<String> keys) throws IOException {
+        List<String> deleted = new java.util.ArrayList<>();
+        if (keys == null) {
+            return deleted;
+        }
+        for (String key : keys) {
+            if (doesObjectExist(bucket, key)) {
+                deleteObject(bucket, key);
+                deleted.add(key);
+            }
+        }
+        return deleted;
+    }
+
+    /**
+     * 范围读取（HTTP Range）。大对象断点续传、视频拖动进度条都靠它。
+     *
+     * @param offset 起始偏移
+     * @param length 读取字节数，负数表示读到结尾
+     */
+    default InputStream getObject(String bucket, String key, long offset, long length) throws IOException {
+        InputStream full = getObject(bucket, key);
+        if (offset <= 0 && length < 0) {
+            return full;
+        }
+        try {
+            long skipped = 0;
+            while (skipped < offset) {
+                long n = full.skip(offset - skipped);
+                if (n <= 0) {
+                    // skip 返回 0 有两种含义：到头了，或流不支持 skip。读一个字节来分辨。
+                    if (full.read() == -1) {
+                        return new java.io.ByteArrayInputStream(new byte[0]);
+                    }
+                    skipped++;
+                } else {
+                    skipped += n;
+                }
+            }
+            if (length < 0) {
+                return full;
+            }
+            return new java.io.ByteArrayInputStream(readN(full, (int) length));
+        } catch (IOException e) {
+            full.close();
+            throw e;
+        }
+    }
+
+    static byte[] readN(InputStream in, int n) throws IOException {
+        byte[] buf = new byte[n];
+        int read = 0;
+        while (read < n) {
+            int r = in.read(buf, read, n - read);
+            if (r == -1) {
+                break;
+            }
+            read += r;
+        }
+        if (read == n) {
+            return buf;
+        }
+        byte[] exact = new byte[read];
+        System.arraycopy(buf, 0, exact, 0, read);
+        return exact;
+    }
+
+    // ==================== 分片上传 ====================
+
+    /**
+     * 开启一次分片上传，返回 uploadId。
+     * <p>
+     * 默认实现不支持 —— 各后端要支持就得自己覆盖。没实现的平台会明确报
+     * "不支持分片上传"，而不是把大文件静默塞进内存。
+     */
+    default String initiateMultipartUpload(String bucket, String key, String contentType) {
+        throw new UnsupportedOperationException(
+                "Provider '" + getType() + "' 不支持分片上传");
+    }
+
+    /**
+     * 上传一个分片
+     *
+     * @param partNumber 分片序号，从 1 开始
+     * @return 分片信息（ETag + 大小），合并时要拿它校验
+     */
+    default OssPartInfo uploadPart(String bucket, String key, String uploadId,
+                                    int partNumber, InputStream inputStream,
+                                    long size, String contentType) throws IOException {
+        throw new UnsupportedOperationException(
+                "Provider '" + getType() + "' 不支持分片上传");
+    }
+
+    /**
+     * 完成分片上传，按 partNumber 顺序归并成最终对象
+     *
+     * @param parts 已上传的分片（可乱序传入，Provider 自行按 partNumber 排序）
+     */
+    default OssObjectSummary completeMultipartUpload(String bucket, String key, String uploadId,
+                                                     List<OssPartInfo> parts) throws IOException {
+        throw new UnsupportedOperationException(
+                "Provider '" + getType() + "' 不支持分片上传");
+    }
+
+    /**
+     * 放弃分片上传，释放已上传分片占用的空间
+     */
+    default void abortMultipartUpload(String bucket, String key, String uploadId) {
+        throw new UnsupportedOperationException(
+                "Provider '" + getType() + "' 不支持分片上传");
+    }
 }

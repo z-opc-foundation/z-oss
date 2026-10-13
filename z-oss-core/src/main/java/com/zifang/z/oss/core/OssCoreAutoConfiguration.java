@@ -6,6 +6,7 @@ import com.zifang.z.oss.core.provider.OssProvider;
 import com.zifang.z.oss.core.provider.OssProviderManager;
 import com.zifang.z.oss.core.provider.impl.AliyunOssProperties;
 import com.zifang.z.oss.core.provider.impl.AliyunOssProvider;
+import com.zifang.z.oss.core.provider.impl.LocalOssProperties;
 import com.zifang.z.oss.core.provider.impl.LocalOssProvider;
 import com.zifang.z.oss.core.storage.FileStorageEngine;
 import com.zifang.z.oss.core.storage.FileStorageProperties;
@@ -48,7 +49,7 @@ import java.util.List;
                 pattern = "com\\.zifang\\.z\\.oss\\.core\\.domain\\.mapper\\..*"
         )
 )
-@EnableConfigurationProperties({FileStorageProperties.class, AliyunOssProperties.class})
+@EnableConfigurationProperties({FileStorageProperties.class, AliyunOssProperties.class, LocalOssProperties.class})
 public class OssCoreAutoConfiguration {
 
     private static final Logger log = LogManager.getLogger(OssCoreAutoConfiguration.class);
@@ -72,9 +73,12 @@ public class OssCoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(name = "localOssProvider")
     @ConditionalOnProperty(name = "oss.provider", havingValue = "local", matchIfMissing = true)
-    public OssProvider localOssProvider(FileStorageEngine engine) {
+    public OssProvider localOssProvider(FileStorageEngine engine, LocalOssProperties props) {
+        if (props.getAccessKey() == null || props.getAccessKey().isEmpty()) {
+            log.warn("oss.local.access-key 未配置, 预签名 URL 将使用内置默认密钥 —— 仅限本地开发");
+        }
         log.info("注册 OssProvider: local");
-        return new LocalOssProvider(engine);
+        return new LocalOssProvider(engine, props.getAccessKey(), props.getPublicBaseUrl());
     }
 
     // ==================== Aliyun Provider ====================

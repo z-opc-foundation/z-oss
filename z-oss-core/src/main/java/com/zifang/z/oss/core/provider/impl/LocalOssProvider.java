@@ -2,8 +2,10 @@ package com.zifang.z.oss.core.provider.impl;
 
 import com.zifang.z.oss.common.enums.BucketAcl;
 import com.zifang.z.oss.core.provider.OssObjectSummary;
+import com.zifang.z.oss.core.provider.OssPartInfo;
 import com.zifang.z.oss.core.provider.OssProvider;
 import com.zifang.z.oss.core.storage.FileStorageEngine;
+import com.zifang.z.oss.core.util.ZOssSignature;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,13 +24,38 @@ import java.util.stream.Stream;
 
 /**
  * 本地文件系统 Provider（基于 {@link FileStorageEngine}）
+ * <p>
+ * 这是 z-oss 的<b>自持后端</b>：不接任何外部对象存储，z-oss 自己就是那个提供
+ * 存储的服务端（对标 MinIO 的 standalone 模式）。分片上传与预签名 URL 在这里
+ * 是一等能力，不是转发给云厂商的薄壳。
  */
 public class LocalOssProvider implements OssProvider {
 
+    /**
+     * 未配置签名密钥时的兜底 accessKey。生产必须显式配 {@code oss.local.access-key}。
+     */
+    static final String DEFAULT_SIGNATURE_KEY = "zoss-local";
+
     private final FileStorageEngine engine;
 
+    /**
+     * 预签名 URL 用它签，也用它校验。空则退回 {@link #DEFAULT_SIGNATURE_KEY}。
+     */
+    private final String signatureAccessKey;
+
+    /**
+     * 预签名 URL 的对外前缀（scheme://host[:port]），空则返回相对路径。
+     */
+    private final String publicBaseUrl;
+
     public LocalOssProvider(FileStorageEngine engine) {
+        this(engine, null, null);
+    }
+
+    public LocalOssProvider(FileStorageEngine engine, String signatureAccessKey, String publicBaseUrl) {
         this.engine = engine;
+        this.signatureAccessKey = signatureAccessKey;
+        this.publicBaseUrl = publicBaseUrl;
     }
 
     @Override
@@ -77,8 +104,94 @@ public class LocalOssProvider implements OssProvider {
 
     @Override
     public String generatePresignedUrl(String bucket, String key, int expireSeconds) {
-        // 本地模式无签名概念，返回相对路径（业务层负责鉴权）
-        return "/api/v1/object/" + bucket + "/" + key;
+        // 本地模式没有云厂商的签名服务可借, 自己签: HMAC-SHA256(accessKey, "bucket/key/expire"),
+        // 过期时间与 accessKey 一起进 URL。签名/校验都在 ZOssSignature 里, 两边共用一份算法。
+        int expire = expireSeconds <= 0 ? 900 : expireSeconds;
+        String accessKey = (signatureAccessKey == null || signatureAccessKey.isEmpty())
+                ? DEFAULT_SIGNATURE_KEY : signatureAccessKey;
+        long expiresAt = System.currentTimeMillis() / 1000L + expire;
+        String signature = ZOssSignature.sign(accessKey, bucket, key, expiresAt);
+
+        String base = (publicBaseUrl == null || publicBaseUrl.isEmpty())
+                ? "" : trimTrailingSlash(publicBaseUrl);
+        return base + "/api/v1/object/download"
+                + "?bucketName=" + urlEncode(bucket)
+                + "&objectKey=" + urlEncodePath(key)
+                + "&expires=" + expiresAt
+                + "&accessKeyId=" + urlEncode(accessKey)
+                + "&signature=" + signature;
+    }
+
+    private static String urlEncode(String v) {
+        try {
+            return java.net.URLEncoder.encode(v, StandardCharsets.UTF_8.name());
+        } catch (java.io.UnsupportedEncodingException e) {
+            throw new IllegalStateException("UTF-8 不可用", e);
+        }
+    }
+
+    /**
+     * 对象 key 是路径语义：只编码非路径字符，保留 {@code /} 不编码，
+     * 否则一个深层 key 会被编成单段，服务端解回来还是对的但 URL 不可读。
+     */
+    private static String urlEncodePath(String v) {
+        return urlEncode(v).replace("%2F", "/").replace("+", "%20");
+    }
+
+    private static String trimTrailingSlash(String s) {
+        String v = s.trim();
+        return v.endsWith("/") ? v.substring(0, v.length() - 1) : v;
+    }
+
+    // ==================== 分片上传 ====================
+
+    @Override
+    public String initiateMultipartUpload(String bucket, String key, String contentType) {
+        if (key == null || key.isEmpty()) {
+            throw new IllegalArgumentException("object key must not be empty");
+        }
+        try {
+            return engine.createMultipartSession();
+        } catch (IOException e) {
+            throw new RuntimeException("开启分片上传失败: " + key, e);
+        }
+    }
+
+    @Override
+    public OssPartInfo uploadPart(String bucket, String key, String uploadId, int partNumber,
+                                   InputStream inputStream, long size, String contentType) throws IOException {
+        if (partNumber < 1) {
+            throw new IllegalArgumentException("partNumber 从 1 开始, 收到 " + partNumber);
+        }
+        String etag = engine.writePart(uploadId, partNumber, inputStream);
+        long written = engine.getMultipartPartSize(uploadId, partNumber);
+        return new OssPartInfo(partNumber, etag, written);
+    }
+
+    @Override
+    public OssObjectSummary completeMultipartUpload(String bucket, String key, String uploadId,
+                                                    List<OssPartInfo> parts) throws IOException {
+        if (parts == null || parts.isEmpty()) {
+            throw new IOException("completeMultipartUpload 至少需要一个分片");
+        }
+        List<Integer> ordered = new ArrayList<>();
+        for (OssPartInfo p : parts) {
+            ordered.add(p.getPartNumber());
+        }
+        ordered.sort(Integer::compareTo);
+
+        String etag = engine.assembleParts(bucket, key, uploadId, ordered);
+        long size = engine.getSize(bucket, key);
+        return new OssObjectSummary(key, size, etag, null, key.endsWith("/"), new Date());
+    }
+
+    @Override
+    public void abortMultipartUpload(String bucket, String key, String uploadId) {
+        try {
+            engine.abortMultipartSession(uploadId);
+        } catch (IOException e) {
+            throw new RuntimeException("放弃分片上传失败: uploadId=" + uploadId, e);
+        }
     }
 
     @Override

@@ -81,6 +81,27 @@
             <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- 测试台。此前本模块 0 支测试，下载/分片这些语义全靠编译过来说话 ——
+             而 GET /api/v1/object 恰恰是"编译干净但返回 JSON"的那类缺陷。
+             排掉 starter-logging：它会把 log4j2 事件灌进 slf4j→logback，
+             方向正好和全仓 log4j2-only 的口径相反。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

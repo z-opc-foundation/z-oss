@@ -9,6 +9,7 @@ import com.zifang.z.oss.core.domain.mapper.OssObjectMapper;
 import com.zifang.z.oss.core.domain.service.IOssBucketService;
 import com.zifang.z.oss.core.domain.service.IOssObjectService;
 import com.zifang.z.oss.core.provider.OssObjectSummary;
+import com.zifang.z.oss.core.provider.OssPartInfo;
 import com.zifang.z.oss.core.provider.OssProvider;
 import com.zifang.z.oss.core.provider.OssProviderManager;
 import org.apache.logging.log4j.LogManager;
@@ -79,6 +80,22 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
         } catch (IOException e) {
             throw new ObjectException("下载失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    public InputStream openObjectStream(String bucketName, String objectKey, long offset, long length) {
+        try {
+            return providerManager.provider().getObject(bucketName, objectKey, offset, length);
+        } catch (IOException e) {
+            throw new ObjectException("读取失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public OssObject getObjectByKey(String bucketName, String objectKey) {
+        return this.getOne(new LambdaQueryWrapper<OssObject>()
+                .eq(OssObject::getBucketName, bucketName)
+                .eq(OssObject::getObjectKey, objectKey));
     }
 
     @Override
@@ -211,6 +228,76 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
             throw new ObjectException("Object not found: " + objectKey);
         }
         return providerManager.provider().generatePresignedUrl(bucketName, objectKey, expires);
+    }
+
+    @Override
+    public String initiateMultipart(String bucketName, String objectKey, String contentType, Long userId) {
+        OssBucket bucket = bucketService.validateBucket(bucketName, userId);
+        OssProvider provider = providerManager.provider();
+        try {
+            return provider.initiateMultipartUpload(bucketName, objectKey, contentType);
+        } catch (UnsupportedOperationException e) {
+            // 后端不支持分片是配置问题不是 bug,原样透出比包成 500 可定位
+            throw new ObjectException(e.getMessage());
+        }
+    }
+
+    @Override
+    public OssPartInfo uploadPart(String bucketName, String objectKey, String uploadId, int partNumber,
+                                  InputStream inputStream, long size, String contentType, Long userId) {
+        bucketService.validateBucket(bucketName, userId);
+        OssProvider provider = providerManager.provider();
+        try {
+            return provider.uploadPart(bucketName, objectKey, uploadId, partNumber, inputStream, size, contentType);
+        } catch (UnsupportedOperationException e) {
+            throw new ObjectException(e.getMessage());
+        } catch (IOException e) {
+            throw new ObjectException("分片上传失败: part=" + partNumber + " " + e.getMessage());
+        }
+    }
+
+    @Override
+    public OssObject completeMultipart(String bucketName, String objectKey, String uploadId,
+                                       List<OssPartInfo> parts, Long userId) {
+        OssBucket bucket = bucketService.validateBucket(bucketName, userId);
+        OssProvider provider = providerManager.provider();
+
+        OssObjectSummary summary;
+        try {
+            summary = provider.completeMultipartUpload(bucketName, objectKey, uploadId, parts);
+        } catch (UnsupportedOperationException e) {
+            throw new ObjectException(e.getMessage());
+        } catch (IOException e) {
+            throw new ObjectException("分片归并失败: " + e.getMessage());
+        }
+
+        // 覆盖式归并:同 key 已存在时先删旧记录,否则 listObjects 会看到重复行
+        OssObject existing = getObject(bucketName, objectKey, userId);
+        if (existing != null) {
+            this.removeById(existing.getId());
+        }
+
+        OssObject object = new OssObject();
+        object.setBucketId(bucket.getId());
+        object.setBucketName(bucketName);
+        object.setObjectKey(objectKey);
+        object.setObjectName(getObjectName(objectKey));
+        object.setContentLength(summary.getSize());
+        object.setEtag(summary.getEtag());
+        object.setStoragePath(bucketName + "/" + objectKey);
+        object.setUserId(userId);
+        object.setIsFolder(0);
+
+        OssObject prior = getObjectByKey(bucketName, objectKey);
+        object.setContentType(prior == null ? null : prior.getContentType());
+        this.save(object);
+        return object;
+    }
+
+    @Override
+    public void abortMultipart(String bucketName, String objectKey, String uploadId, Long userId) {
+        bucketService.validateBucket(bucketName, userId);
+        providerManager.provider().abortMultipartUpload(bucketName, objectKey, uploadId);
     }
 
     @Override

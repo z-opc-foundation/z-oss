@@ -6,11 +6,14 @@ import org.apache.logging.log4j.Logger;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
 
 /**
  * 本地文件系统存储引擎
@@ -51,22 +54,26 @@ public class FileStorageEngine implements StorageEngine {
             Path path = getStoragePath(bucket, objectKey);
             Files.createDirectories(path.getParent());
 
-            // 读取全部数据到字节数组
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            byte[] data = new byte[8192];
-            int read;
-            while ((read = inputStream.read(data)) != -1) {
-                buffer.write(data, 0, read);
+            // 边读边算 MD5 边落盘。原来是先 ByteArrayOutputStream 收全量再 Files.write,
+            // 峰值堆 ≈ 文件大小 —— 传个 1G 文件就是 OOM,而对象存储本来就不该按文件大小吃堆。
+            MessageDigest md = newMd5();
+            Path tmp = Files.createTempFile(path.getParent(), ".upload-", ".tmp");
+            try {
+                try (java.io.OutputStream out = Files.newOutputStream(tmp)) {
+                    byte[] data = new byte[64 * 1024];
+                    int read;
+                    while ((read = inputStream.read(data)) != -1) {
+                        md.update(data, 0, read);
+                        out.write(data, 0, read);
+                    }
+                }
+                // 先写临时文件再原子改名: 避免写到一半进程挂掉,留下一个"看起来存在但内容截断"的对象
+                Files.move(tmp, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (Exception e) {
+                Files.deleteIfExists(tmp);
+                throw e;
             }
-            byte[] bytes = buffer.toByteArray();
-
-            // 计算ETag
-            String etag = computeETag(bytes);
-
-            // 写入文件
-            Files.write(path, bytes);
-
-            return etag;
+            return toHex(md.digest());
         } catch (IllegalArgumentException e) {
             // 非法 key：调用方的输入问题，调用方多半还要据此返回 400，原样抛出
             throw e;
@@ -164,16 +171,142 @@ public class FileStorageEngine implements StorageEngine {
     private String computeETag(byte[] data) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] digest = md.digest(data);
-
-            // JDK8 通用的字节数组转十六进制
-            StringBuilder hex = new StringBuilder();
-            for (byte b : digest) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
+            return toHex(md.digest(data));
         } catch (Exception e) {
             return "invalid";
         }
+    }
+
+    private static String toHex(byte[] digest) {
+        StringBuilder hex = new StringBuilder();
+        for (byte b : digest) {
+            hex.append(String.format("%02x", b));
+        }
+        return hex.toString();
+    }
+
+    private static MessageDigest newMd5() {
+        try {
+            return MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("MD5 不可用", e);
+        }
+    }
+
+    // ==================== 分片上传的本地落盘实现 ====================
+    //
+    // 分片先落在 root/.zmultipart/<uploadId>/<partNumber>.part, complete 时按序号流式拼进
+    // 目标对象的临时文件再原子改名 —— 全程不把整个对象读进堆。
+
+    /**
+     * 分片暂存根目录（桶目录之外，避免被 listObjects 当成对象列出来）
+     */
+    private Path multipartRoot() {
+        return Paths.get(rootPath).toAbsolutePath().normalize().resolve(".zmultipart");
+    }
+
+    /**
+     * 为一次分片上传建目录，返回 uploadId
+     */
+    public String createMultipartSession() throws IOException {
+        Path root = multipartRoot();
+        // createTempDirectory 不建父目录，.zmultipart 不先建出来就是 NoSuchFileException
+        Files.createDirectories(root);
+        Path dir = Files.createTempDirectory(root, "upload-");
+        return dir.getFileName().toString();
+    }
+
+    /**
+     * 写一个分片，返回该分片的 MD5
+     */
+    public String writePart(String uploadId, int partNumber, InputStream in) throws IOException {
+        Path dir = multipartSessionDir(uploadId);
+        Files.createDirectories(dir);
+        Path part = dir.resolve(partNumber + ".part");
+        MessageDigest md = newMd5();
+        try (java.io.OutputStream out = Files.newOutputStream(part)) {
+            byte[] data = new byte[64 * 1024];
+            int read;
+            while ((read = in.read(data)) != -1) {
+                md.update(data, 0, read);
+                out.write(data, 0, read);
+            }
+        }
+        return toHex(md.digest());
+    }
+
+    /**
+     * 按 partNumber 升序把分片拼成最终对象，返回整体 MD5
+     */
+    public String assembleParts(String bucket, String objectKey, String uploadId, List<Integer> partNumbers)
+            throws IOException {
+        Path dir = multipartSessionDir(uploadId);
+        Path target = getStoragePath(bucket, objectKey);
+        Files.createDirectories(target.getParent());
+        MessageDigest md = newMd5();
+        Path tmp = Files.createTempFile(target.getParent(), ".assemble-", ".tmp");
+        try {
+            try (java.io.OutputStream out = Files.newOutputStream(tmp)) {
+                for (Integer partNumber : partNumbers) {
+                    Path part = dir.resolve(partNumber + ".part");
+                    if (!Files.exists(part)) {
+                        throw new IOException("分片缺失: partNumber=" + partNumber + " uploadId=" + uploadId);
+                    }
+                    try (InputStream in = Files.newInputStream(part)) {
+                        byte[] data = new byte[64 * 1024];
+                        int read;
+                        while ((read = in.read(data)) != -1) {
+                            md.update(data, 0, read);
+                            out.write(data, 0, read);
+                        }
+                    }
+                }
+            }
+            Files.move(tmp, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            Files.deleteIfExists(tmp);
+            throw e;
+        }
+        abortMultipartSession(uploadId);
+        return toHex(md.digest());
+    }
+
+    /**
+     * 丢弃一次分片上传的全部暂存分片
+     */
+    public void abortMultipartSession(String uploadId) throws IOException {
+        Path dir = multipartSessionDir(uploadId);
+        if (!Files.exists(dir)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> walk = Files.walk(dir)) {
+            walk.sorted((a, b) -> b.toString().length() - a.toString().length())
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
+        }
+    }
+
+    /**
+     * 某个已落盘分片的字节数
+     */
+    public long getMultipartPartSize(String uploadId, int partNumber) throws IOException {
+        Path part = multipartSessionDir(uploadId).resolve(partNumber + ".part");
+        return Files.exists(part) ? Files.size(part) : 0;
+    }
+
+    /**
+     * uploadId 完全由服务端生成，但仍然要过一遍路径校验 —— 它会直接参与拼路径。
+     */
+    private Path multipartSessionDir(String uploadId) {
+        Path root = multipartRoot().normalize();
+        Path dir = root.resolve(uploadId == null ? "" : uploadId).normalize();
+        if (!dir.startsWith(root) || dir.equals(root)) {
+            throw new IllegalArgumentException("Illegal uploadId: " + uploadId);
+        }
+        return dir;
     }
 }

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.yuku123</groupId>
+        <artifactId>z-oss</artifactId>
+        <version>1.0.4</version>
+    </parent>
+
+    <groupId>io.github.yuku123</groupId>
+    <version>1.0.4</version>
+    <artifactId>z-oss-spring-boot-starter</artifactId>
+    <name>z-oss-spring-boot-starter</name>
+    <description>z-oss 自动装配：本地/阿里云/S3(MinIO) 各平台对象存储对接 + OssTemplate 门面</description>
+
+    <url>https://github.com/z-opc-foundation/z-oss</url>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <connection>scm:git:https://github.com/z-opc-foundation/z-oss.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:z-opc-foundation/z-oss.git</developerConnection>
+        <url>https://github.com/z-opc-foundation/z-oss</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <dependencies>
+        <!-- core: 存储引擎 + Provider SPI + 领域服务。starter 依赖它, 消费方只依赖 starter -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-oss-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- S3 协议客户端。同一套 S3 协议同时覆盖 AWS S3 与自建 MinIO, 不必再引 aws-sdk
+             (后者会带进整个 jackson/okhttp 家族, 与 z-fleet 的 jackson 版本口径打架)。
+             optional: 只用 local / aliyun 的消费方不会被动拖进 okhttp 依赖树。 -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>2.7.18</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <version>2.7.18</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- 记日志只走 log4j2 一家, 别把外来日志家族挂 classpath 上 -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>2.7.18</version>
+            <scope>test</scope>
+            <exclusions>
+                <!-- spring 容器默认日志那一族整条拔掉: 它带 logback-classic + log4j-to-slf4j,
+                     方向正好相反(log4j2 事件被灌进 slf4j→logback), 还会顺手把 log4j-api
+                     抬成 2.25.4, 于是一条测试类路径上出现两个 log4j2 版本。 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+            <version>2.7.18</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

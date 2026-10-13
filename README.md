@@ -1,10 +1,22 @@
 # z-oss
 
-> 可插拔的对象存储抽象层 —— 一个 `OssProvider` 接口，`local`（本地文件系统）/ `aliyun`（阿里云 OSS）两种后端，
-> 外加一层自带 AK/SK 鉴权的 Bucket / Object REST 服务
+> 对象存储服务 —— z-oss 自己既是一个可插拔的对象存储后端（`local` 自持后端，对标 MinIO standalone），
+> 也是一个多平台对接层（`aliyun` / `s3`，后者覆盖 AWS S3 与自建 MinIO）。
+> 消费方只需依赖 `z-oss-spring-boot-starter` 一件，注入 `OssTemplate` 即可用对象/桶/分片全能力。
 
-它解决的是"业务侧不想认识具体云厂商"这个问题：附件、头像、导入导出文件这类需求过去各处直连 SDK，
-换环境就要改代码。z-oss 把桶与对象的 CRUD 收到 `OssProvider` 这一个接口后面，由
+它解决的是两件事：一是"业务侧不想认识具体云厂商"——附件、头像、导入导出文件过去各处直连 SDK，
+换环境就要改代码；二是"不想为了存附件再运维一套 MinIO"——`local` 后端自带存储引擎、流式落盘、
+分片上传与签名 URL，不接任何外部平台也能独立提供对象存储服务。
+
+## 模块
+
+| 模块 | 定位 |
+|------|------|
+| `z-oss-common` | 纯 enum / exception，无 Spring 依赖 |
+| `z-oss-core` | `OssProvider` SPI、存储引擎、各后端实现、领域服务 |
+| `z-oss-spring-boot-starter` | **消费方入口**：自动装配 + `OssTemplate` 门面 + S3/MinIO 平台对接 |
+| `z-oss-api` | 可独立运行的 REST 服务（Bucket/Object/用户/鉴权） |
+
 `OssProviderManager` 按 `oss.provider` 配置项挑出当前激活实现；对象元数据（桶、对象、用户）落 MySQL，
 字节流落 provider。业务方既可以只引 `z-oss-common` 拿枚举与异常，也可以把 `z-oss-api` 当独立服务
 （`ZOssApplication`）或当可嵌入的自动装配模块（`OssWebAutoConfiguration` + `spring.factories`）使用。
@@ -42,7 +54,14 @@
 | 桶 CRUD / ACL / Policy | `api/controller/BucketController` → `IOssBucketService` / `OssBucketServiceImpl` | 创建、删除、列表与详情、更新（acl/region/policy）、ACL 读写、Policy 读写删、HEAD 存在性校验 |
 | 对象上传 / 下载 / 删除 / 列表 | `api/controller/ObjectController` → `IOssObjectService` / `OssObjectServiceImpl` | `uploadObject` / `downloadObject` / `deleteObject` / `getObject` / `listObjects`（支持 `prefix`） |
 | 对象复制 · 批量删除 · 建目录 | `ObjectController` `POST /object/copy`、`POST /object/batch-delete`、`POST /folder` | 目录即 `is_folder=1` 的零字节对象（`createFolder`） |
-| 预签名下载 URL | `GET /object/url`，默认有效期 `expires=3600` 秒 | Aliyun 返回真实签名地址；Local 模式**不签名**，返回相对路径 `/api/v1/object/{bucket}/{key}`，鉴权交回业务层 |
+| 预签名下载 URL | `GET /object/url`（默认 `expires=3600` 秒）签发，`GET /object/download` 校验并直出字节 | Aliyun 返回 SDK 真实签名地址；Local 走 `ZOssSignature` 自己的 HMAC-SHA256 签名（`oss.local.access-key`），校验失败/过期一律 401 语义 |
+| S3 协议后端（AWS S3 / MinIO / Ceph RGW） | `spring/provider/S3OssProvider` + `S3OssProperties`（`getType()` 返回 `s3`），在 **starter** 件内 | 同一套 S3 协议覆盖 AWS 与自建 MinIO，差别只在 `endpoint` 与 `path-style`；用 `io.minio:minio` 而非 aws-sdk，避免把 jackson/okhttp 家族拖进消费方依赖树 |
+| 消费方门面 | `spring/template/OssTemplate`（在 **starter** 件内） | 注入一个 bean 覆盖对象/桶/分片全能力；无状态，业务代码不感知当前后端 |
+| starter 自动装配 | `z-oss-spring-boot-starter` + `AutoConfiguration.imports` 与 `spring.factories` 双注册 | 消费方只依赖 starter 一件。各后端 bean 各自 `@ConditionalOnProperty`，配了谁才实例化谁；`oss.enabled=false` 整体关停 |
+| 分片上传 | `OssProvider` 的 `initiate/uploadPart/complete/abort` 四方法（默认实现明确报"不支持"），Local 后端原生支持；端点 `POST /object/multipart/{init,part,complete,abort}` | 分片先落 `root/.zmultipart/<uploadId>/`，归并时按 partNumber 顺序流式拼进目标文件再原子改名，全程不把对象读进堆。**S3 后端不支持**（8.x 客户端没暴露 multipart 的高层 API） |
+| 服务端复制 / 批量删除 / 范围读 | `OssProvider` 的 `copyObject` / `batchDeleteObjects` / `getObject(offset,length)` 默认实现；S3 后端走真协议（CopyObject / DeleteObjects / Range） | 同桶改名不下载再上传一遍 |
+| 流式落盘与原子写 | `storage/FileStorageEngine#store` | 边读边算 MD5 边写临时文件再原子改名；原实现先 `ByteArrayOutputStream` 收全量，峰值堆 ≈ 文件大小 |
+| 下载真二进制直出 | `ObjectController#downloadObject`（`StreamingResponseBody`）+ Range 支持 | 原实现返回 `Result.success(byte[])`，字节被 Jackson 序列化成 JSON，`Content-Type`/`Content-Length`/`ETag` set 在一个随即丢弃的 `HttpHeaders` 上 |
 | 对象元数据（HEAD） | `HEAD /object/meta` | 返回 key / size / contentType / etag / lastModified，缺失时 404 |
 | 桶统计 | `GET /bucket/stats` → `OssObjectServiceImpl#getBucketStats` | 键名实测为 `objectCount` / `totalSize` / `activeProvider` |
 | 自有用户体系与 AK/SK | `api/controller/UserController` → `IOssUserService` / `OssUserServiceImpl` | 注册时生成 accessKey/secretKey，登录签发 `accessKey:secretKey` 形态的 token，另有改用户名、重置密钥、改密码 |
@@ -52,10 +71,10 @@
 | 自动装配 | `core/OssCoreAutoConfiguration`、`api/web/config/OssWebAutoConfiguration`（`META-INF/spring.factories`） | 后者被 main-starter 自动加载，并用 `excludeFilters` 排掉 demo 启动类 `ZOssApplication`，避免 `@MapperScan` 双通道抢注 mapper |
 | 扩展点（SPI 缝） | `core/hook/OssTenantHook`、`BucketLifecycleHook`、`OssInitializer` | **本仓只有接口，0 个实现、0 处调用**；`OssCoreAutoConfiguration` 的 `@ComponentScan` 还列了一个并不存在的 `com.zifang.z.oss.core.init` 包 |
 
-尚未实现（旧 README 当卖点写过，实测 0 命中，别按它接入）：MinIO 后端（只有 `local` / `aliyun` 两个
-`OssProvider` 实现）、`OssTemplate` 门面类（全仓不存在这个名字）、分片上传的 service/API（`OssMultipart`
-`OssPart` 实体与 `oss_multipart`/`oss_part` 建表语句在，但 `IOssObjectService` 没有任何 multipart 方法，
-控制器也没有对应端点）、图片处理 pipeline、`deleteObjects`+`countDeleted`、CDN 与在线预览。
+尚未实现（实测 0 命中，别按它接入）：阿里云之外的第二套云厂商对接（S3 协议后端已实现但仅本地分片
+不支持，见下）、图片处理 pipeline、`deleteObjects`+`countDeleted`、CDN 与在线预览。
+⚠ 分片上传的**过期巡检**没有实现：客户端开了分片又断线不调 abort 时，分片会一直占着
+`oss.storage.file.root/.zmultipart`，需靠运维定期清。
 
 ---
 

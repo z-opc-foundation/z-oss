@@ -59,6 +59,9 @@
         <!-- 核心层：provider 抽象 + 业务逻辑 + hooks -->
         <module>z-oss-core</module>
 
+        <!-- 装配层：消费方入口。含各对象存储平台的对接能力（S3/MinIO）与 OssTemplate 门面 -->
+        <module>z-oss-spring-boot-starter</module>
+
         <!-- API 层：REST endpoints + Spring Boot 启动类 -->
         <module>z-oss-api</module>
 
@@ -131,6 +134,20 @@
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-oss-api</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.yuku123</groupId>
+                <artifactId>z-oss-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- S3 协议客户端。AWS S3 / MinIO / Ceph RGW 共用一套协议,
+                 引它而不是 aws-sdk 是为了不把 jackson/okhttp 家族拖进消费方的依赖树
+                 —— z-fleet 对 jackson 的版本口径与 aws-sdk 内置的那份会打架。 -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>8.5.11</version>
             </dependency>
 
             <!-- z-boot-web-starter / z-boot-datasource-starter / z-util-core / aliyun-sdk-oss /
