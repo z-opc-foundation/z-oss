@@ -208,7 +208,12 @@ public class S3OssProvider implements OssProvider {
 
     @Override
     public List<OssObjectSummary> listObjects(String bucket, String prefix, int maxKeys) {
-        ListObjectsArgs.Builder bld = ListObjectsArgs.builder().bucket(realBucket(bucket));
+        ListObjectsArgs.Builder bld = ListObjectsArgs.builder()
+                .bucket(realBucket(bucket))
+                // 不加 recursive 时 minio 按 "/" 切分隔符，只回公共前缀（a/、b/ 这类哨兵），
+                // 叶子对象一个都不给。OssProvider 的契约是返回叶子对象（local 端是 Files.walk 递归），
+                // 两端不一致会让 OssTemplate.list() 的结果随 oss.provider 切换而变。
+                .recursive(true);
         if (prefix != null && !prefix.isEmpty()) {
             bld.prefix(prefix);
         }
@@ -369,22 +374,35 @@ public class S3OssProvider implements OssProvider {
         if (keys == null || keys.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, io.minio.messages.DeleteObject> targets = new HashMap<>();
+        // S3 的 DeleteObjects 对不存在的 key 也回成功，直接把结果原样返回会让
+        // OssProvider#batchDeleteObjects 的"实际删除"契约在两个后端上不一致
+        // （local 只报真正删掉的）。先按存在性过滤，批量请求只发真实存在的那些。
+        List<String> existing = new ArrayList<>();
         for (String k : keys) {
-            targets.put(k, new io.minio.messages.DeleteObject(k));
+            if (doesObjectExist(bucket, k)) {
+                existing.add(k);
+            }
         }
-        List<String> deleted = new ArrayList<>();
+        if (existing.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<io.minio.messages.DeleteObject> targets = new ArrayList<>(existing.size());
+        for (String k : existing) {
+            targets.add(new io.minio.messages.DeleteObject(k));
+        }
+        List<String> deleted = new ArrayList<>(existing);
         try {
             for (Result<io.minio.messages.DeleteError> r : client.removeObjects(
-                    RemoveObjectsArgs.builder().bucket(realBucket(bucket))
-                            .objects(new ArrayList<>(targets.values())).build())) {
+                    RemoveObjectsArgs.builder().bucket(realBucket(bucket)).objects(targets).build())) {
                 io.minio.messages.DeleteError err = r.get();
-                // S3 DeleteObjects 的静默语义：单个失败不影响整批，这里只收集未报错的部分
-                log.warn("S3 批量删除失败: bucket={} key={} code={}",
-                        bucket, err == null ? "?" : err.objectName(),
-                        err == null ? "?" : err.code());
+                if (err != null) {
+                    // 静默语义：单个失败不影响整批，但失败的那个不能算进"已删除"
+                    log.warn("S3 批量删除失败: bucket={} key={} code={}",
+                            bucket, err.objectName(), err.code());
+                    deleted.remove(err.objectName());
+                }
             }
-            return new ArrayList<>(targets.keySet());
+            return deleted;
         } catch (Exception e) {
             throw wrap("batchDeleteObjects " + bucket, e);
         }
