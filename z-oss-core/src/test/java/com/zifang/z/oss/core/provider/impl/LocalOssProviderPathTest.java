@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,7 +42,7 @@ class LocalOssProviderPathTest {
         assertTrue(Files.isDirectory(root.resolve("mybucket")));
 
         assertTrue(p.doesBucketExist("mybucket"));
-        assertEquals(List.of("mybucket"), p.listBuckets());
+        assertEquals(Collections.singletonList("mybucket"), p.listBuckets());
         assertEquals("public-read", p.getBucketAcl("mybucket"));
     }
 

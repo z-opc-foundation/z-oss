@@ -36,6 +36,17 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+management:
+  endpoints:
+    web:
+      exposure:
+        # 显式写死：K8s 的 readinessProbe/livenessProbe 打在 /actuator/health 上，
+        # 靠"Spring Boot 默认恰好暴露 health"的话，父链一改默认值探针就红。
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
 # z-base-db 配置
 z:
   base:
@@ -48,3 +59,15 @@ z:
         database: oc
       oss:
         database: oc
+
+# 本地后端的对象落盘根目录。K8s 侧用 PVC 挂载到这里，
+# 不覆盖的话容器一重建对象全丢 —— 数据面和元数据库是分开的两件事。
+oss:
+  storage:
+    file:
+      root: ${OSS_STORAGE_FILE_ROOT:/data/oss}
+  # 预签名 URL 的签发密钥。留空会 WARN 并退回内置默认密钥（仅限本地开发）。
+  local:
+    access-key: ${OSS_LOCAL_ACCESS_KEY:}
+    # 容器外访问要用 NodePort / 域名，容器内的 localhost 拼出来的 URL 客户端取不到
+    public-base-url: ${OSS_LOCAL_PUBLIC_BASE_URL:}
