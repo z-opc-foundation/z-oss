@@ -46,6 +46,16 @@ public class OssBucketServiceImpl extends ServiceImpl<OssBucketMapper, OssBucket
 
         // 物理层创建桶
         OssProvider provider = providerManager.provider();
+        // 元数据行已经逻辑删除、但物理目录还留着（孤儿目录）时，
+        // 直接建会撞 provider 的 "Bucket already exists"，而 deleteBucket 又因为
+        // 查不到活行而删不掉 —— 这个桶名就永久占死了。先清孤儿目录再建。
+        if (provider.doesBucketExist(name)) {
+            try {
+                provider.deleteBucket(name);
+            } catch (IOException e) {
+                throw new BucketException("同名桶的残留目录清理失败: " + e.getMessage());
+            }
+        }
         try {
             provider.createBucket(name, "default", BucketAcl.PRIVATE.getCode());
         } catch (IOException e) {
@@ -77,7 +87,9 @@ public class OssBucketServiceImpl extends ServiceImpl<OssBucketMapper, OssBucket
             throw new BucketException("删除桶失败: " + e.getMessage());
         }
 
-        this.removeById(bucket.getId());
+        // 硬删而不是逻辑删：物理目录已经没了，留一行 deleted=1 的记录只会
+        // 把同名桶永久堵死（唯一键 uk_name_user 冲突，第二次删又会撞）。
+        baseMapper.hardDeleteById(bucket.getId());
     }
 
     @Override

@@ -52,7 +52,12 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
             throw new ObjectException("上传失败: " + e.getMessage());
         }
 
-        OssObject object = new OssObject();
+        // 覆盖同 key 的旧元数据行。S3 语义下 PUT 就是覆盖；
+        // 无条件 save() 会让同一 (bucket,key) 攒出多行，之后 getOne() 报 "found: N"。
+        OssObject object = getObject(bucketName, objectKey, userId);
+        if (object == null) {
+            object = new OssObject();
+        }
         object.setBucketId(bucket.getId());
         object.setBucketName(bucketName);
         object.setObjectKey(objectKey);
@@ -63,7 +68,11 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
         object.setStoragePath(bucketName + "/" + objectKey);
         object.setUserId(userId);
         object.setIsFolder(objectKey.endsWith("/") ? 1 : 0);
-        this.save(object);
+        if (object.getId() != null) {
+            this.updateById(object);
+        } else {
+            this.save(object);
+        }
 
         return object;
     }
@@ -101,16 +110,23 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     @Override
     public void deleteObject(String bucketName, String objectKey, Long userId) {
         bucketService.validateBucket(bucketName, userId);
-        OssObject object = getObject(bucketName, objectKey, userId);
-        if (object != null) {
-            try {
-                providerManager.provider().deleteObject(bucketName, objectKey);
-            } catch (IOException e) {
-                log.error("Provider 删除对象失败: {}", e.getMessage());
-                throw new ObjectException("删除失败: " + e.getMessage());
-            }
-            this.removeById(object.getId());
+        // 这里不能走 getObject()：老数据里同一 (bucket,key) 可能有多行
+        // （历史上传/复制无条件 save 留下的），getOne() 命中多行会直接抛
+        // "found: N"，于是这个 key 连删都删不掉。
+        LambdaQueryWrapper<OssObject> wrapper = new LambdaQueryWrapper<OssObject>()
+                .eq(OssObject::getBucketName, bucketName)
+                .eq(OssObject::getObjectKey, objectKey)
+                .eq(OssObject::getUserId, userId);
+        if (this.count(wrapper) <= 0) {
+            return;
         }
+        try {
+            providerManager.provider().deleteObject(bucketName, objectKey);
+        } catch (IOException e) {
+            log.error("Provider 删除对象失败: {}", e.getMessage());
+            throw new ObjectException("删除失败: " + e.getMessage());
+        }
+        this.remove(wrapper);
     }
 
     @Override
@@ -196,7 +212,11 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
         }
 
         OssBucket destBucket = bucketService.validateBucket(destBucketName, userId);
-        OssObject destObject = new OssObject();
+        // 复制到已存在的 key 是覆盖语义，不是新增一行。原先无条件 save()，
+        // 同一 (bucket,key) 会攒出多行，之后 getObject 的 getOne() 直接炸
+        // "found: 2" —— 第一次复制看不出来，第二次才复现。
+        OssObject existing = getObject(destBucketName, destObjectKey, userId);
+        OssObject destObject = existing != null ? existing : new OssObject();
         destObject.setBucketId(destBucket.getId());
         destObject.setBucketName(destBucketName);
         destObject.setObjectKey(destObjectKey);
@@ -207,7 +227,11 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
         destObject.setStoragePath(destBucketName + "/" + destObjectKey);
         destObject.setUserId(userId);
         destObject.setIsFolder(0);
-        this.save(destObject);
+        if (existing != null) {
+            this.updateById(destObject);
+        } else {
+            this.save(destObject);
+        }
 
         return destObject;
     }

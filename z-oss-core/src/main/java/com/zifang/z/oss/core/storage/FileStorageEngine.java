@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 本地文件系统存储引擎
@@ -98,11 +99,34 @@ public class FileStorageEngine implements StorageEngine {
         try {
             Path path = getStoragePath(bucket, objectKey);
             Files.deleteIfExists(path);
+            pruneEmptyParents(path.getParent(), getStoragePath(bucket, ""));
         } catch (IllegalArgumentException e) {
             // 越界 key 属调用方输入问题，原样抛出，别被下面的兜底包成 RuntimeException 掩盖掉
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete object: " + objectKey, e);
+        }
+    }
+
+    /**
+     * 删掉对象后把空掉的父目录一并回收。少了这一步，删光 a/1.txt 会在桶里
+     * 留下空的 a/ 目录，而 deleteBucket 把"非 .acl 的目录项"一律算作非空 ——
+     * 于是这个桶再也删不掉，只能进 pod 手删。
+     */
+    private void pruneEmptyParents(Path dir, Path stopAt) {
+        try {
+            Path cur = dir;
+            while (cur != null && !cur.equals(stopAt) && Files.isDirectory(cur)) {
+                try (Stream<Path> s = Files.list(cur)) {
+                    if (s.findAny().isPresent()) {
+                        return;
+                    }
+                }
+                Files.deleteIfExists(cur);
+                cur = cur.getParent();
+            }
+        } catch (IOException e) {
+            log.debug("prune empty parent failed: {}", e.toString());
         }
     }
 
