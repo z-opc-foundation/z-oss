@@ -71,3 +71,13 @@ oss:
     access-key: ${OSS_LOCAL_ACCESS_KEY:}
     # 容器外访问要用 NodePort / 域名，容器内的 localhost 拼出来的 URL 客户端取不到
     public-base-url: ${OSS_LOCAL_PUBLIC_BASE_URL:}
+
+# z-ctc-sso 的 SsoAutoConfiguration 默认把拦截器挂在 /** 上，会在
+# AuthenticationInterceptor 之前把 /api/v1/** 全判成"未登录"。
+# 但对象存储的数据面是 AK/SK 鉴权（客户端是 SDK/curl，不是浏览器），
+# 没有也不该有 sso_token —— 所以整条数据面从 SSO 拦截里排除，
+# 只保留 /api/oss-admin 走 SSO（那是真·控制台，靠 SsoContext 记审计操作人）。
+sso:
+  exclude-paths:
+    - /api/v1/**
+    - /actuator/**

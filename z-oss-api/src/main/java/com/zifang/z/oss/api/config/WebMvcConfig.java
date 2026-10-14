@@ -21,7 +21,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/v1/**")
                 .excludePathPatterns(
                         "/api/v1/user/register",
-                        "/api/v1/user/login"
+                        "/api/v1/user/login",
+                        // 预签名下载的凭证是 URL 里的签名，不是 AK/SK 头。
+                        // 这里若继续拦，就变成"发了预签名 URL 还得再补一对 AK/SK"，
+                        // 预签名通道形同虚设（典型受害方是 <img>/<video> 这类没法带头的浏览器）。
+                        "/api/v1/object/download"
                 );
     }
 }
