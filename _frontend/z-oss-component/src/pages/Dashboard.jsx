@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons'
 import {useNavigate} from 'react-router-dom'
 import {bucketApi} from '../services/api'
+import FileSizeFormatter from './FileSizeFormatter'
 
 export default function Dashboard() {
     const navigate = useNavigate()

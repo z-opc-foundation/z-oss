@@ -1,7 +1,7 @@
 import { Component, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@yuku123/z-frontend-common'
-import { menuItems, routes, HomePage, LoginPage } from '@yuku123/z-oss-component/pages'
+import { menuItems, routes, HomePage, Login } from '@yuku123/z-oss-component/pages'
 import { Result, Button } from 'antd'
 
 class ErrorBoundary extends Component {
@@ -25,9 +25,10 @@ function NotFound() {
     )
 }
 
-// lead 008 §16：短期 hard-coded 登录（admin / 123456），CTC/SSO 接入后换共享 LoginPage loginApi
+// 用真 Login（POST /api/v1/user/login）。共享的 mock LoginPage 存的是 `token`，
+// 而 z-oss 的桶/对象接口要的是 accessKey/secretKey 头 —— 走 mock 登录进去后每个请求都 401。
 function LoginRoute() {
-    return <LoginPage />
+    return <Login />
 }
 
 function ProtectedShell() {
@@ -35,12 +36,12 @@ function ProtectedShell() {
     const [ready, setReady] = useState(false)
 
     useEffect(() => {
-        if (!localStorage.getItem('token')) {
+        // 判据跟 pages-manifest 的 isAuthenticated 一致：accessKey 才是 z-oss 的会话凭证
+        if (!localStorage.getItem('accessKey')) {
             window.location.replace('/z-oss/login')
             return
         }
-        const raw = localStorage.getItem('userInfo')
-        if (raw) { try { setUser(JSON.parse(raw)) } catch { setUser({ name: raw }) } }
+        setUser({name: localStorage.getItem('username') || ''})
         setReady(true)
     }, [])
 

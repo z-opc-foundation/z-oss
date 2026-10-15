@@ -33,7 +33,7 @@ export const routes = [
     { path: '/z-oss/bucket', Component: BucketList },
     { path: '/z-oss/object', Component: ObjectList },
     { path: '/z-oss/user', Component: UserManage },
-    { path: '/z-oss/:rest*', Component: OssApp },
+    { path: '/z-oss/*', Component: OssApp },
 ]
 
 export { default as HomePage } from './pages/HomePage'

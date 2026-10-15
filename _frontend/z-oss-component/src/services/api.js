@@ -38,6 +38,39 @@ export const ossApi = {
 }
 
 /**
+ * 用户面走 z-oss 原生 {@code /api/v1/user/**}（UserController），与上面那套 oss-admin 不同：
+ * oss-admin 是 SSO 只读面（OssAdminController 里只有 @GetMapping，写接口刻意不开）；
+ * 注册/登录/改密码/重置密钥只在这条 AK/SK 路上。
+ *
+ * 鉴权头是 {@code X-Zoss-Access-Key}，而 login 返回的 token 形状是 "accessKey:secretKey"
+ * —— 取冒号前半段当 accessKey 用。
+ */
+const USER_BASE = '/api/v1/user'
+
+function akHeaders() {
+    const token = localStorage.getItem('accessKey') || ''
+    const [akFromToken, skFromToken] = token.includes(':') ? token.split(':') : [token, '']
+    const ak = localStorage.getItem('accessKey') || akFromToken
+    const sk = localStorage.getItem('secretKey') || skFromToken
+    const headers = {}
+    if (ak) headers['X-Zoss-Access-Key'] = ak.includes(':') ? ak.split(':')[0] : ak
+    if (sk) headers['X-Zoss-Secret-Key'] = sk
+    return headers
+}
+
+/** z-oss 原生面统一走 Result 信封，取出业务负载 */
+const unwrap = (r) => r.data?.data
+
+export const userApi = {
+    login: (values) => request.post(`${USER_BASE}/login`, values).then((r) => r.data),
+    register: (values) => request.post(`${USER_BASE}/register`, values).then((r) => r.data),
+    getInfo: () => request.get(`${USER_BASE}/info`, {headers: akHeaders()}).then((r) => r.data),
+    updateInfo: (values) => request.put(`${USER_BASE}/info`, values, {headers: akHeaders()}).then((r) => r.data),
+    resetKeys: () => request.post(`${USER_BASE}/reset-key`, null, {headers: akHeaders()}).then((r) => r.data),
+    changePassword: (values) => request.post(`${USER_BASE}/password`, values, {headers: akHeaders()}).then((r) => r.data),
+}
+
+/**
  * 后端错误有两种形态，都要透出 message，否则页面只剩一句 axios 默认文案：
  *  1. Result 信封（success=false）：{data:null, success:false, code:409, message:"平台账号 xxx 在 z-oss 未开户…"}
  *     —— 共享 request 的 defaultUnwrap 会把它 reject 掉，错误体在 e.response.data；
@@ -57,6 +90,33 @@ export function ossErrorText(e) {
 export function isUnprovisionedError(e) {
     const d = e?.response?.data
     return !!d && typeof d === 'object' && (d.code === 409 || /未开户/.test(String(d.message || '')))
+}
+
+/**
+ * 存储桶写面走 z-oss 原生 {@code /api/v1/bucket}（BucketController），带 AK/SK 头。
+ * 不带 bucketName 的 GET 是列表，带的是详情 —— 后端把两个裸 @GetMapping 合成了一个。
+ */
+export const bucketApi = {
+    list: () => request.get('/api/v1/bucket', {headers: akHeaders()}).then(unwrap),
+    detail: (bucketName) => request.get('/api/v1/bucket', {headers: akHeaders(), params: {bucketName}}).then(unwrap),
+    create: (values) => request.post('/api/v1/bucket', values, {headers: akHeaders()}).then(unwrap),
+    update: (bucketName, values) => request.put('/api/v1/bucket', values, {headers: akHeaders(), params: {bucketName}}).then(unwrap),
+    delete: (bucketName) => request.delete('/api/v1/bucket', {headers: akHeaders(), params: {bucketName}}).then(unwrap),
+    getStats: (bucketName) => request.get('/api/v1/bucket/stats', {headers: akHeaders(), params: {bucketName}}).then(unwrap),
+}
+
+/**
+ * 对象面走 {@code /api/v1/object} + {@code /api/v1/folder}（ObjectController）。
+ * 下载是唯一不走 Result 信封的端点 —— controller 直写 Servlet 输出流（Jackson 包过就成 base64 了），
+ * 所以 responseType 必须是 blob，不能按 JSON 解析。
+ */
+export const objectApi = {
+    list: (bucketName, prefix) => request.get('/api/v1/object/list', {headers: akHeaders(), params: {bucketName, prefix: prefix || undefined}}).then(unwrap),
+    createFolder: (bucketName, folderKey) => request.post('/api/v1/folder', null, {headers: akHeaders(), params: {bucketName, folderKey}}).then(unwrap),
+    download: (bucketName, objectKey) => request.get('/api/v1/object', {headers: akHeaders(), params: {bucketName, objectKey}, responseType: 'blob'}).then((r) => r.data),
+    copy: (bucketName, objectKey, values) => request.post('/api/v1/object/copy', values, {headers: akHeaders(), params: {bucketName, objectKey}}).then(unwrap),
+    delete: (bucketName, objectKey) => request.delete('/api/v1/object', {headers: akHeaders(), params: {bucketName, objectKey}}).then(unwrap),
+    batchDelete: (bucketName, objectKeys) => request.post('/api/v1/object/batch-delete', objectKeys, {headers: akHeaders(), params: {bucketName}}).then(unwrap),
 }
 
 export function fmtBytes(b) {
