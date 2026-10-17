@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.annotation.Resource;
 import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,14 +25,16 @@ import java.util.Map;
  * 开关 z.oss.host.enabled (默认关): 寄生 all-in-one 模式由宿主打开;
  * standalone z-oss 容器不开 —— standalone 的前端走 /api/v1/**, 不需要这条别名.
  * 控制器与装配双双挂同一开关, 保证两种装载路径 (宿主 spring.factories / 本应用组件扫描)
- * 都不会在开关关闭时注册出缺 dataSourceCtc 的半成品.
+ * 都不会在开关关闭时注册出半成品。
+ *
+ * <p>数据源一律现查 (见 {@link #lookupDataSource()}), 不做字段注入: 这里原来写的是
+ * {@code @Resource(name = "dataSourceCtc")}, 而 all-in-one 拆解后 z-ctc-web 已从宿主
+ * fat jar 里消失, 那个 bean 没人注册 ⇒ 容器在 preInstantiateSingletons 阶段就
+ * NoSuchBeanDefinitionException 死掉, 连开关都来不及看。真面在 /api/oss-admin。
  */
 @RestController
 @ConditionalOnProperty(prefix = "z.oss.host", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class OssAliasController {
-
-    @Resource(name = "dataSourceCtc")
-    private DataSource dataSource;
 
     /**
      * 列出 buckets (alias for /api/v1/bucket).
@@ -85,7 +86,6 @@ public class OssAliasController {
      * <p>避免硬编码 datasource bean 名, 跨模块更稳.</p>
      */
     private DataSource lookupDataSource() {
-        if (dataSource != null) return dataSource;
         try {
             org.springframework.context.ApplicationContext ctx =
                     org.springframework.web.context.ContextLoader.getCurrentWebApplicationContext();
