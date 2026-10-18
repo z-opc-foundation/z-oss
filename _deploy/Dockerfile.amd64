@@ -1,0 +1,27 @@
+# z-oss 部署镜像 (amd64, 走公共镜像站底座)
+#
+# 与 _deploy/Dockerfile 的区别只在底座: 那个依赖离线构建机上镜像好的 zops-ubuntu:local,
+# 本机构建机上没有这个底座, 改成从镜像站拉 eclipse-temurin:8-jre-jammy。
+# 内容等价 (JRE 8 + ca-certificates + Asia/Shanghai 时区), 与 z-opc-main 的 Dockerfile.amd64 同一套。
+#
+#   mvn -B -DskipTests install
+#   docker build --platform linux/amd64 -f _deploy/Dockerfile.amd64 -t z-oss:1.0.8 .
+FROM --platform=linux/amd64 docker.m.daocloud.io/library/eclipse-temurin:8-jre-jammy
+
+LABEL maintainer="zifang"
+
+ENV TZ=Asia/Shanghai
+
+WORKDIR /app
+
+RUN mkdir -p /data/oss
+
+ARG JAR_FILE=z-oss-api/target/z-oss-api-1.0.4-exec.jar
+COPY ${JAR_FILE} /app/app.jar
+
+EXPOSE 8082
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+  CMD wget -q -O- http://127.0.0.1:8082/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

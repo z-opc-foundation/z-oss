@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from 'react'
 import {Alert, Button, Card, Descriptions, Tag} from 'antd'
 import {ReloadOutlined} from '@ant-design/icons'
 import {ossApi, ossErrorText} from '../services/api'
-import {PageHeader} from '@/common/components/ui'
+import {PageHeader} from '@yuku123/z-frontend-common/ui'
 
 /**
  * 对象存储身份页 —— 先回答"你是谁、能不能看桶"，再谈列表。

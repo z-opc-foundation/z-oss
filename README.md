@@ -106,8 +106,10 @@ z-oss/
   `domain`（`OssUser`/`OssBucket`/`OssObject`/`OssMultipart`/`OssPart` 实体、3 个 Mapper、3 组 Service 接口与实现）、
   `file`（`FileStorageService` 门面：`of(byte[])` + `getAllUrl(String)`，由 `FileStorageServiceImpl` 实现并注册成
   `fileStorageService` bean，**当前 REST 层没有调用它**，链路走的是 `IOssObjectService`）、`hook`。
-  `src/main/resources/static/` 是 `_frontend` 构建产物（`index.html` + 3 个 `assets/index-*.js`）的落地位置，
-  被打包进 jar 后由 Spring Boot 在 `/` 直接对外提供。
+- **前端产物落位** — `_frontend` 的构建产物只放 **`z-oss-api/src/main/resources/static/`**（`index.html` + `assets/`），
+  被打包进 jar 后由 Spring Boot 在 `/` 直接对外提供。**`z-oss-core` 不再带任何 static**：
+  2026-10-18 实测两处都在时，fat jar 里 `BOOT-INF/lib/z-oss-core.jar` 的 classpath 排在
+  `BOOT-INF/classes` 前面，旧的前端会赢，控制台一直显示上一个版本的界面而完全无报错。
 - **`z-oss-api`** — 3 个 Controller（26 个映射，见 API 一节）、`AuthenticationInterceptor`、`WebMvcConfig`
   （只拦 `/api/v1/**`，放行 register/login）、`OssGlobalExceptionHandler`、`OssMybatisPlusConfig`、
   `OssModuleDataSource`、DTO/VO、`ZOssApplication`、`OssWebAutoConfiguration` + `spring.factories`。
@@ -140,7 +142,7 @@ z-oss/
 `_frontend/pom.xml` 里那个 `frontend-maven-plugin` 把 `dist/` 拷到
 `z-oss-core/src/main/resources/static` 的链路，parent 还写着 `com.zifang:z-oss:1.0.0-SNAPSHOT`
 （该坐标在本仓已不存在，且 `_frontend` 不在 `<modules>` 里），所以**这条链今天不会被 Maven 触发**；
-静态产物得手工 `npm run build` 后再拷。
+静态产物得手工 `npm run build` 后再拷到 `z-oss-api/src/main/resources/static`。
 
 ---
 
@@ -246,7 +248,7 @@ DDL 只有 SQL 文件，没有 Flyway/Liquibase：
 cd _frontend
 npm install            # 或 pnpm install（pnpm-workspace.yaml 只设 nodeLinker: hoisted）
 npm run dev            # vite，端口 3004
-npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-core/src/main/resources/static
+npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-api/src/main/resources/static
 ```
 
 ### 嵌入 main-starter（不独立起进程）

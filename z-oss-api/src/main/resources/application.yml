@@ -81,3 +81,21 @@ sso:
   exclude-paths:
     - /api/v1/**
     - /actuator/**
+    # Spring Boot 的错误页。不排除的话，任何 404/500 转发到 /error 后会被 SsoInterceptor
+    # 当成"未登录的浏览器请求"，回一个 302 跳登录 —— 表现为"接口路径拼错"却看到登录页，
+    # 排查时完全看不出真实原因（实测 /api/v1/buckets 打错单复数就是这样查了半天）。
+    - /error
+    # 控制台自己的页面与静态资源。z-oss 的控制台不用 sso_token 登录，它有独立的
+    # 用户体系（POST /api/v1/user/login，token 就是 accessKey:secretKey），
+    # 页面由前端自己判是否跳 /z-oss/login。让 SSO 拦这些路径只会得到死循环：
+    # 未登录 → 302 到 ctc → 回来仍是未登录，控制台一屏都打不开。
+    - /
+    - /index.html
+    - /assets/**
+    - /icon.png
+    - /favicon.ico
+    - /dashboard
+    - /buckets
+    - /users
+    - /objects/**
+    - /z-oss/**

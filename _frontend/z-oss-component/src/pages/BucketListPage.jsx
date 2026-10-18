@@ -3,7 +3,7 @@ import {Alert, Button, Card, Space, Table, Tag} from 'antd'
 import {ReloadOutlined, RightOutlined} from '@ant-design/icons'
 import {useNavigate} from 'react-router-dom'
 import {ossApi, ossErrorText, isUnprovisionedError} from '../services/api'
-import {PageHeader} from '@/common/components/ui'
+import {PageHeader} from '@yuku123/z-frontend-common/ui'
 
 const COLUMNS = [
     {

@@ -3,7 +3,7 @@ import {Alert, Button, Card, Col, Descriptions, Input, Row, Select, Space, Stati
 import {FolderOutlined, ReloadOutlined, SearchOutlined} from '@ant-design/icons'
 import {useSearchParams} from 'react-router-dom'
 import {fmtBytes, ossApi, ossErrorText, isUnprovisionedError} from '../services/api'
-import {PageHeader, TableToolbar} from '@/common/components/ui'
+import {PageHeader, TableToolbar} from '@yuku123/z-frontend-common/ui'
 
 const COLUMNS = [
     {
