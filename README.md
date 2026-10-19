@@ -30,7 +30,7 @@
 | **仓库** | `z-oss`（对象存储服务） |
 | **Maven 坐标** | `io.github.yuku123:z-oss` · `z-oss-common` · `z-oss-core` · `z-oss-api` |
 | **当前版本** | `1.0.4`（根 POM 用的是普通 `<version>`，**不是** `<revision>` + CI-friendly，子模块 `<parent>` 里写死 `1.0.4`） |
-| **父项目** | `io.github.yuku123:z-boot-parent:1.0.21`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；它继承地板 `z-boot-dependencies:1.0.20` 并 import `z-boot-fleet:1.0.1`） |
+| **父项目** | `io.github.yuku123:z-boot-parent:1.1.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；第三方地板与兄弟仓权威表均已并入 parent 自身） |
 | **Maven Central** | 已发布（2026-09-30 ranged GET `-r 0-0` 实测，均 **206**）：`z-oss-1.0.4.pom`、`z-oss-common-1.0.4.pom`、`z-oss-core-1.0.4.pom`、`z-oss-api-1.0.4.pom`、`z-oss-api-1.0.4-exec.jar`。`maven-metadata.xml` 上四个坐标的历史版本为 `1.0.1`（根/common）、`1.0.2`–`1.0.4`（core/api） |
 | **默认端口** | `8082`（`z-oss-api/src/main/resources/application.yml` 的 `server.port`；**未配置** `server.servlet.context-path`，所以没有 `/oss` 之类前缀） |
 | **运行口径** | Java 8（`java.version=1.8` 由 parent 下发）· Spring Boot 2.7.18 · 日志实现 Log4j2 `2.17.2`（本仓按坐标逐条压回，刻意不与地板的 2.25.4 同值） |
@@ -84,7 +84,7 @@
 
 ```
 z-oss/
-├── pom.xml                # 根聚合 POM：parent=z-boot-parent:1.0.21，<version>1.0.4</version>，3 个 module
+├── pom.xml                # 根聚合 POM：parent=z-boot-parent:1.1.0，<version>1.0.4</version>，3 个 module
 ├── z-oss-common/          # 纯 enum + exception，<dependencies> 为空（刻意不引 Spring）
 ├── z-oss-core/            # Provider 抽象 + domain(MyBatis-Plus 实体/Mapper/Service) + storage + hook
 ├── z-oss-api/             # REST 层 + 启动类 + 数据源装配 + application.yml（可独立跑，也可被 main-starter 引入）
@@ -127,13 +127,13 @@ z-oss/
 
 | 层级 | 技术 | 版本来源 |
 |------|------|----------|
-| 语言 / 运行时 | Java 8（`source`/`target` 8，非 `--release`；class major 52） | `z-boot-parent:1.0.21` 下发 |
+| 语言 / 运行时 | Java 8（`source`/`target` 8，非 `--release`；class major 52） | `z-boot-parent:1.1.0` 下发 |
 | 框架 | Spring Boot 2.7.18 | 同上（`spring-boot.version` 由 parent 供，本仓只在 pluginManagement 保留 `${spring-boot.version}` 兜底） |
-| 持久层 | MyBatis-Plus 3.5.7 + `mybatis-spring` 2.1.2（本仓按坐标写死压回，地板那一格是 2.0.6） | 地板 `z-boot-dependencies` + 根 POM |
+| 持久层 | MyBatis-Plus 3.5.7 + `mybatis-spring` 2.1.2（本仓按坐标写死压回，地板那一格是 2.0.6） | `z-boot-parent` 自带地板 + 根 POM |
 | 连接池 | Druid 1.2.23（由 `z-boot-datasource-starter` 传递带入，本仓 `druid.version` 死键已删） | 地板 / starter |
 | 数据库 | MySQL 8（`mysql-connector-j` 8.4.0，会连带 `protobuf-java` 3.25.5）；**没有 H2、没有 profile 化的内存库方案** | 地板 |
 | 对象存储 SDK | `com.aliyun.oss:aliyun-sdk-oss` 3.17.4 | 地板 |
-| 内部依赖 | `z-boot-web-starter` / `z-boot-datasource-starter` 1.0.19、`z-util-core` 1.0.14（`Result` / `ResultCode` 来自这里） | `z-boot-fleet:1.0.1` |
+| 内部依赖 | `z-boot-web-starter` / `z-boot-datasource-starter` 1.0.19、`z-util-core` 1.0.14（`Result` / `ResultCode` 来自这里） | `z-boot-parent` 的兄弟仓权威表 |
 | 日志 | Log4j2 2.17.2（`log4j-api`/`core`/`jul`/`slf4j-impl` 四条按坐标逐条压回）；代码里 12 处 `org.apache.logging.log4j`，0 处 slf4j/logback 直用 | 根 POM |
 | 接口文档 | Knife4j `knife4j-openapi3-spring-boot-starter` 4.1.0（注意地板另有 `knife4j.version=3.0.3` 那一族，本仓用的是 openapi3 那一族） | 地板 |
 | 前端 | React 19 + antd 6 + Vite 6 + react-router-dom 7，包名 `@zifang/z-oss-frontend`（`private: true`），另引 `@yuku123/z-oss-frontend-component`、`@yuku123/z-frontend-common` | `_frontend/package.json` |
@@ -215,9 +215,9 @@ secret、桶名之外的口令值。
 mvn clean install -DskipTests
 ```
 
-第三方版本一律由 `z-boot-parent` → `z-boot-dependencies`（地板）+ `z-boot-fleet`（兄弟仓权威表）供给，
+第三方版本一律由 `z-boot-parent:1.1.0` 供给（第三方地板与兄弟仓权威表均已并入 parent 自身），
 模块 POM 里不应再出现字面版本钉。构建报找不到版本时，先确认能解析到
-`io.github.yuku123:z-boot-parent:1.0.21`（`relativePath` 留空，它在 repo1 不在磁盘）。
+`io.github.yuku123:z-boot-parent:1.1.0`（`relativePath` 留空，它在 repo1 不在磁盘）。
 本仓没有 `.mvn/`、没有 `Makefile`、没有 `mvnw`。
 
 ### 本地跑起来
@@ -340,7 +340,7 @@ curl -s -X POST 'http://localhost:8082/api/v1/bucket' \
   -d '{"name":"demo"}'
 ```
 
-补测试时的已知坑：`z-boot-dependencies` 对 `spring-boot-starter-logging` 写了 `*:*` 通配 exclusion，
+补测试时的已知坑：`z-boot-parent` 自带地板对 `spring-boot-starter-logging` 写了 `*:*` 通配 exclusion，
 logback-classic / logback-core / log4j-to-slf4j 会从类路径静默消失。本仓生产实现一直是 Log4j2（不受影响），
 但如果新增的测试用例直接用 logback，就得自己在 test scope 补依赖并在 POM 注释里写清原因。
 
@@ -406,7 +406,7 @@ MIT，见仓库根 [`LICENSE`](LICENSE)（版权行 `Copyright (c) 2026 z-opc-fo
 
 | 项目 | 关系 |
 |---|---|
-| `z-boot` | 提供 `z-boot-parent` / `z-boot-dependencies` / `z-boot-fleet`，以及本仓用到的 `z-boot-web-starter`、`z-boot-datasource-starter` |
+| `z-boot` | 提供 `z-boot-parent`（自带第三方地板与兄弟仓权威表），以及本仓用到的 `z-boot-web-starter`、`z-boot-datasource-starter` |
 | `z-util` | `z-util-core` 供给 `Result` / `ResultCode` 等返回体类型 |
 | `z-ctc` | 4A 中心；本仓**不依赖** `z-ctc-core`（`OssTenantHook` 就是为此而留的反向缝），用户体系是 z-oss 自己的一套 |
 | `z-boot-oss-starter` | 已发布到 Central（`1.0.19` ranged GET 实测 206），可作为对外聚合入口 |
