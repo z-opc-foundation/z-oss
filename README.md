@@ -188,7 +188,9 @@ secret、桶名之外的口令值。
   `SERVER_PORT`、`SPRING_APPLICATION_NAME`、
   `Z_BASE_DB_OSS_HOST` / `Z_BASE_DB_OSS_PORT` / `Z_BASE_DB_OSS_DATABASE` /
   `Z_BASE_DB_OSS_USERNAME` / `Z_BASE_DB_OSS_PASSWORD`，
-  以及回退档 `Z_BASE_DB_DEFAULT_*`；
+  以及回退档 `Z_BASE_DB_DEFAULT_*`（含 `Z_BASE_DB_DEFAULT_HOST`）；
+  `spring.datasource` 那份主数据源走 `SPRING_DATASOURCE_URL` / `SPRING_DATASOURCE_USERNAME` /
+  `SPRING_DATASOURCE_PASSWORD`（2026-10-19 起 yml 里是占位符，部署必须注入前两个）；
   `OSS_PROVIDER`、`OSS_STORAGE_FILE_ROOT`、`OSS_ALIYUN_ENDPOINT`、
   `OSS_ALIYUN_ACCESS_KEY_ID`、`OSS_ALIYUN_ACCESS_KEY_SECRET`、`OSS_ALIYUN_SECURITY_TOKEN`、
   `OSS_ALIYUN_BUCKET_PREFIX`、`OSS_ALIYUN_DEFAULT_ACL`。
@@ -413,6 +415,7 @@ MIT，见仓库根 [`LICENSE`](LICENSE)（版权行 `Copyright (c) 2026 z-opc-fo
 
 ## 文档目录
 
+- [`_doc/008_troubleshooting/`](_doc/008_troubleshooting/) — 踩坑与失败要点（控制台三处契约断裂）
 本项目文档统一收口在 `_doc/` 下（现状：`001_arch` 只有 1 篇、`004_skill` 是空目录）：
 
 - [`_doc/001_arch/`](_doc/001_arch/) — 架构文档:
@@ -430,8 +433,8 @@ MIT，见仓库根 [`LICENSE`](LICENSE)（版权行 `Copyright (c) 2026 z-opc-fo
   - [`install-settings.sh`](_doc/003_script/install-settings.sh) — 往 `~/.m2/settings.xml` 注入 `server id="central"`（写 `${env.*}` 占位符，不落明文）
 - `_doc/004_skill/` — AI skill 定义（目前为空目录，暂无 skill）
 
-与规范不一致、但按现状如实记录的两处：Dockerfile 在仓库根 [`_deploy/`](_deploy/) 而不是
-[`_doc/002_deploy/`](_doc/002_deploy/)；仓库根另有一个空目录 [`sql/`](sql/)，git 未跟踪其中任何文件，真正的 DDL 在
-`_doc/002_deploy/init/`。
+与规范不一致、但按现状如实记录的一处：Dockerfile 在仓库根 [`_deploy/`](_deploy/) 而不是
+[`_doc/002_deploy/`](_doc/002_deploy/)。真正的 DDL 在 `_doc/002_deploy/init/`（`db.sql` / `oss.sql`）；
+仓库根已无 `sql/` 目录（空目录 git 不跟踪，已清）。
 
 _Maintained by the z-opc-foundation organization._
