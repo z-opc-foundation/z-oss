@@ -84,7 +84,7 @@
 
 ```
 z-oss/
-├── pom.xml                # 根聚合 POM：parent=z-boot-parent:1.1.0，<version>1.0.4</version>，3 个 module
+├── pom.xml                # 根聚合 POM：parent=z-boot-parent:1.1.0，<version>1.0.4</version>，4 个 module
 ├── z-oss-common/          # 纯 enum + exception，<dependencies> 为空（刻意不引 Spring）
 ├── z-oss-core/            # Provider 抽象 + domain(MyBatis-Plus 实体/Mapper/Service) + storage + hook
 ├── z-oss-api/             # REST 层 + 启动类 + 数据源装配 + application.yml（可独立跑，也可被 main-starter 引入）
@@ -110,15 +110,17 @@ z-oss/
   被打包进 jar 后由 Spring Boot 在 `/` 直接对外提供。**`z-oss-core` 不再带任何 static**：
   2026-10-18 实测两处都在时，fat jar 里 `BOOT-INF/lib/z-oss-core.jar` 的 classpath 排在
   `BOOT-INF/classes` 前面，旧的前端会赢，控制台一直显示上一个版本的界面而完全无报错。
-- **`z-oss-api`** — 3 个 Controller（26 个映射，见 API 一节）、`AuthenticationInterceptor`、`WebMvcConfig`
+- **`z-oss-api`** — 5 个 Controller（37 个方法级映射，见 API 一节）、`AuthenticationInterceptor`、`WebMvcConfig`
   （只拦 `/api/v1/**`，放行 register/login）、`OssGlobalExceptionHandler`、`OssMybatisPlusConfig`、
   `OssModuleDataSource`、DTO/VO、`ZOssApplication`、`OssWebAutoConfiguration` + `spring.factories`。
 
 > **纠偏**：`z-oss-core/pom.xml` 里那段"当前不在 aggregator 中（已临时排除）"的注释、
 > 以及 `_doc/003_script/deploy_maven_center.sh` 头部同时写着 `✅ z-oss-core 已解耦` 和
 > `⏸ z-oss-core 已排除` 的两行，都是历史残留。根 POM 的 `<modules>` 今天实实在在列了
-> `z-oss-common`、`z-oss-core`、`z-oss-api` 三个模块，Central 上三个 1.0.4 坐标也都在。
-> 三个模块的 POM 均未设置 `maven.deploy.skip`（全仓 `maven.deploy.skip` 命中 0 处），
+> `z-oss-common`、`z-oss-core`、`z-oss-spring-boot-starter`、`z-oss-api` 四个模块；
+> 其中 `z-oss-common`、`z-oss-core`、`z-oss-api` 三个坐标的 1.0.4 已实测可从 Central 回读
+> （`z-oss-spring-boot-starter` 是消费方入口，不在本次回读范围内）。
+> 四个模块的 POM 均未设置 `maven.deploy.skip`（全仓 `maven.deploy.skip` 只在根 POM 的一处**注释**里出现），
 > 也就是说本仓没有 z-ctc 那种"演示模块永不发布"的例外。
 
 ---
@@ -266,10 +268,13 @@ npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-api/sr
 
 ## 🔌 API 一览
 
-前缀 `/api/v1`，共 26 个映射。鉴权由 `AuthenticationInterceptor` 拦 `/api/v1/**`，
+`z-oss-api` 下 **5 个 Controller、37 个方法级映射**：`/api/v1` 族 31 个
+（`UserController` 6 / `BucketController` 10 / `ObjectController` 15）、`/api/oss-admin` 族 4 个（只读管理面）、
+`/api/oss/*` 族 2 个（z-opc 侧的别名入口）。鉴权由 `AuthenticationInterceptor` 拦 `/api/v1/**`，
 只放行 `POST /api/v1/user/register` 与 `POST /api/v1/user/login`。
 
-> **路径口径纠偏**：三个 Controller 的类级 Javadoc 还列着一批 `/object/{bucketName}/{objectKey}`
+> **路径口径纠偏**：`BucketController` 与 `ObjectController` 两个 Controller 的类级 Javadoc 还列着一批
+> `/object/{bucketName}/{objectKey}`
 > 这种 path-style 写法，但方法上的注解早已换成 query 参数风格 —— **下面这张表是按注解实测出来的，
 > 是唯一可信的版本**。
 
@@ -303,6 +308,7 @@ npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-api/sr
 |------|------|----------|
 | POST | `/api/v1/object` | `bucketName` + `objectKey` + multipart 字段 `file`；无 Content-Type 时回落 `application/octet-stream` |
 | GET | `/api/v1/object` | `bucketName` + `objectKey`；响应体是字节数组，但 `Content-Type`/`Content-Length`/`ETag` 只设在 `HttpHeaders` 对象上、随 `Result` 一起 JSON 化返回 —— 当前实现**不是**真正的二进制流下载 |
+| GET | `/api/v1/object/download` | `bucketName` + `objectKey` + `expires` + `accessKeyId` + `signature`；返回 `StreamingResponseBody`，**这条才是真二进制流**（与上一条不同） |
 | DELETE | `/api/v1/object` | `bucketName` + `objectKey` |
 | GET | `/api/v1/object/list` | `bucketName` + 可选 `prefix` |
 | POST | `/api/v1/folder` | `bucketName` + `folderKey` |
@@ -311,6 +317,30 @@ npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-api/sr
 | POST | `/api/v1/object/batch-delete` | `bucketName` + body 为 key 字符串数组；部分失败不返回计数 |
 | GET | `/api/v1/object/url` | `bucketName` + `objectKey` + `expires`（默认 3600 秒）；返回 `PresignedUrlVO`（url + expiresAt） |
 | GET | `/api/v1/bucket/stats` | `bucketName`；返回 `objectCount` / `totalSize` / `activeProvider` |
+| POST | `/api/v1/object/multipart/init` | `bucketName` + `objectKey` + 可选 `contentType`；返回 uploadId |
+| POST | `/api/v1/object/multipart/part` | `bucketName` + `objectKey` + `uploadId` + `partNumber` + multipart 字段 `file` + 可选 `contentType` |
+| POST | `/api/v1/object/multipart/complete` | `bucketName` + `objectKey` + `uploadId`；返回 `ObjectVO` |
+| POST | `/api/v1/object/multipart/abort` | `bucketName` + `objectKey` + `uploadId`；丢弃已传分片 |
+
+管理面（`OssAdminController`，base `/api/oss-admin`，**只读** —— 本文件只有 `@GetMapping`，没有任何写映射）：
+
+| 方法 | 路径 | 关键入参 |
+|------|------|----------|
+| GET | `/api/oss-admin/whoami` | 无 —— 返回平台登录身份到 z-oss 账号的映射；`provisioned=false` 表示该账号在 z-oss 里没有身份（不降级成空列表冒充「有账号、桶为空」）；取不到 SSO 身份时返回 401 |
+| GET | `/api/oss-admin/buckets` | 无 —— 桶列表（等价于 `GET /api/v1/bucket` 的 list 分支，但不需要 AK/SK） |
+| GET | `/api/oss-admin/bucket/detail` | `name` —— 桶元数据 + 两份统计：`bucket_stats` 来自 `IOssBucketService`、`object_stats` 来自 `IOssObjectService`，两份不能只取一份 |
+| GET | `/api/oss-admin/objects` | `name` + 可选 `prefix` —— 对象列表（`prefix` 原样交给 service，本层不拼接也不兜空） |
+
+别名入口（`OssAliasController`，类在 `com.zifang.z.oss.host` 包下，**没有**类级前缀）：
+
+| 方法 | 路径 | 关键入参 |
+|------|------|----------|
+| GET | `/api/oss/list` | 无 —— z-opc 侧 SSO 令牌直查桶列表 |
+| GET | `/api/oss/{bucketName}` | path 变量 `bucketName` —— 桶详情 |
+
+> ⚠ `/api/oss-admin/**` 与 `/api/oss/**` **不在** z-oss 自己的 `AuthenticationInterceptor` 口径里 ——
+> 它们落在 z-opc 的 `/api/**` 整族上，由 **SSO 会话**（`SsoInterceptor`）鉴权，不是 AK/SK。
+> （`OssAdminController` 类注释记录：实测 `/api/oss/list` 不带 token 一律 302。）
 
 前端与后端的口径对不上，接之前要先修：`_frontend/src/services/api.js` 的 `bucketApi` / `objectApi`
 仍在请求 path-style 的 `/bucket/{name}`、`/object/{bucket}/{key}`，这些路径在上表里一个都不存在；
@@ -326,11 +356,14 @@ npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-api/sr
 mvn test
 ```
 
-如实说明：**本仓当前一支测试都没有**。`src/test` 目录命中 0 个，测试类 0 个，
-surefire 跑下来是 "No tests to run"。旧 README 写的"单元测试 18 PASS"没有任何来源。
-也没有 `*PerformanceTest.java` 这类性能用例。
+仓内的测试类：`z-oss-core` 的 `LocalOssProviderMultipartTest`、`LocalOssProviderPathTest`、
+`FileStorageEnginePrefixPruneTest`、`FileStorageEngineSecurityTest`，`z-oss-api` 的
+`ObjectDownloadControllerTest`，`z-oss-spring-boot-starter` 的 `OssStarterAutoConfigurationTest`，
+以及 `z-oss-core` 的 `ReadmeClaimsTest`（本 README 定量主张与源码重算值的对账守卫）；
+`ZossDeployedServiceIT` 与 `S3OssProviderMinioIT` 打的是真实部署实例，不在 `mvn test` 的默认口径里。
+旧 README 写的"单元测试 18 PASS"没有任何来源。也没有 `*PerformanceTest.java` 这类性能用例。
 
-因此改动后的验证只能靠编译 + 手工冒烟：
+跨进程的行为验证仍然只能靠编译 + 手工冒烟：
 
 ```bash
 mvn clean install -DskipTests                                  # 至少证明 reactor 与父链解析得通
