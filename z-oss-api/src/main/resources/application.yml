@@ -78,6 +78,21 @@ oss:
 # 没有也不该有 sso_token —— 所以整条数据面从 SSO 拦截里排除，
 # 只保留 /api/oss-admin 走 SSO（那是真·控制台，靠 SsoContext 记审计操作人）。
 sso:
+  # ⚠ 2026-10-22 (TASK-20261021-041): **必须显式配 login-url**。
+  #
+  # 现象（公网实测，2026-10-21 18:30 / 2026-10-22 01:2x 两次复现）：
+  #   GET https://oss.zopc.top/login → 302
+  #   Location: https://ctc.zopc.top/?redirect=http://oss.zopc.top/login
+  #                                          ^^^^^^^ 回跳协议被降级成明文 http
+  #
+  # 根因：SsoProperties#loginUrl 的**默认值是 http://localhost:8080/login**。
+  # 修复（z-ctc 仓 6050844）让 SsoInterceptor 从 `sso.login-url` 取**协议**来拼回跳地址
+  # （SsoInterceptor#loginUrlScheme）—— 但**不配这个键就等于把协议声明成 http**。
+  # ⇒ 光升级 z-ctc-sso 不够，**本仓必须显式声明公网协议**。
+  #
+  # ⚠ 协议一旦被 login-url 换上去，公网入口的端口就由协议决定（https 即 443），
+  #   容器的 80/8888 与公网端口无关 ⇒ 这里**不要带端口**。
+  login-url: https://ctc.zopc.top/
   exclude-paths:
     - /api/v1/**
     - /actuator/**

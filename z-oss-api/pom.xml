@@ -58,9 +58,23 @@
         <!-- 2026-10-03: OssAdminController (自 z-opc main-starter 平移) 用
              z-ctc-sso 的 SsoContext/UserInfo 做操作人审计; z-util-core 的 Result 泛型容器
              (经 z-oss-core 传递已有, sso 需显式). provided: 作为库不绑死宿主的认证实现. -->
+        <!--
+          ⚠ 2026-10-22 (TASK-20261021-041): **显式钉 1.0.5**。
+          原因: 父 pom z-boot-parent:1.1.0 把 <z-ctc.version> 钉在 **1.0.2**,
+          而 1.0.2 里的 SsoInterceptor 没有「回跳协议取自 sso.login-url」这段逻辑
+          (那是 z-ctc 仓 6050844 引入的, 见 SsoInterceptor#loginUrlScheme)。
+          ⇒ 落回默认分支 ⇒ 登录回跳地址的协议被降级成 http:// (公网实测:
+             GET https://oss.zopc.top/login → 302 Location 带 redirect=http://oss.zopc.top/login)。
+
+          ⚠⚠ **为什么中央的 1.0.4 不管用**: Maven Central 上的 z-ctc-sso:1.0.4 是 **2026-10-17**
+          构建的, **早于 10-21 00:52 的修复** ⇒ 那一版不含 loginUrlScheme。
+          本地构建的 1.0.5 才含(实测字节里 loginUrlScheme 命中)。
+          ⇒ 这是「中央构件 ≠ 线上构件」的又一例: **同版本号、不同内容**。
+        -->
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-ctc-sso</artifactId>
+            <version>1.0.5</version>
             <scope>provided</scope>
         </dependency>
 
