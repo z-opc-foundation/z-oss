@@ -36,7 +36,7 @@ RUN mkdir -p /data/oss
 ARG JAR_FILE=z-oss-api/target/z-oss-api-1.0.4-exec.jar
 COPY ${JAR_FILE} /app/app.jar
 
-# 与 application.yml 的 server.port 一致
+# 与 z-oss-standalone.yml 的 server.port 一致
 EXPOSE 8082
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \

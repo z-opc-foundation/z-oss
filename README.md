@@ -32,7 +32,7 @@
 | **当前版本** | `1.0.4`（根 POM 用的是普通 `<version>`，**不是** `<revision>` + CI-friendly，子模块 `<parent>` 里写死 `1.0.4`） |
 | **父项目** | `io.github.yuku123:z-boot-parent:1.1.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；第三方地板与兄弟仓权威表均已并入 parent 自身） |
 | **Maven Central** | 已发布（2026-09-30 ranged GET `-r 0-0` 实测，均 **206**）：`z-oss-1.0.4.pom`、`z-oss-common-1.0.4.pom`、`z-oss-core-1.0.4.pom`、`z-oss-api-1.0.4.pom`、`z-oss-api-1.0.4-exec.jar`。`maven-metadata.xml` 上四个坐标的历史版本为 `1.0.1`（根/common）、`1.0.2`–`1.0.4`（core/api） |
-| **默认端口** | `8082`（`z-oss-api/src/main/resources/application.yml` 的 `server.port`；**未配置** `server.servlet.context-path`，所以没有 `/oss` 之类前缀） |
+| **默认端口** | `8082`（`z-oss-api/src/main/resources/z-oss-standalone.yml` 的 `server.port`（**刻意不叫** `application.yml`，见 `_doc/001_arch/02_库件配置约束.md`）；**未配置** `server.servlet.context-path`，所以没有 `/oss` 之类前缀） |
 | **运行口径** | Java 8（`java.version=1.8` 由 parent 下发）· Spring Boot 2.7.18 · 日志实现 Log4j2 `2.17.2`（本仓按坐标逐条压回，刻意不与地板的 2.25.4 同值） |
 | **最近更新** | 2026-09-30 |
 
@@ -87,7 +87,7 @@ z-oss/
 ├── pom.xml                # 根聚合 POM：parent=z-boot-parent:1.1.0，<version>1.0.4</version>，4 个 module
 ├── z-oss-common/          # 纯 enum + exception，<dependencies> 为空（刻意不引 Spring）
 ├── z-oss-core/            # Provider 抽象 + domain(MyBatis-Plus 实体/Mapper/Service) + storage + hook
-├── z-oss-api/             # REST 层 + 启动类 + 数据源装配 + application.yml（可独立跑，也可被 main-starter 引入）
+├── z-oss-api/             # REST 层 + 启动类 + 数据源装配 + z-oss-standalone.yml（**不叫** application* ⇒ 不劫持宿主；可独立跑，也可被 main-starter 引入）
 ├── _frontend/             # Vite + React 19 + antd 6 的 npm 工程；根 POM 的 <modules> 里该条已注释，不进 Maven reactor
 ├── _deploy/
 │   └── Dockerfile         # ⚠ 部署资产在仓库根的 _deploy/，不在 _doc/002_deploy/（见「部署」一节）
@@ -164,11 +164,11 @@ z-oss/
 | `oss.aliyun.security-token` | `AliyunOssProperties#securityToken` | 无 | 走 STS 时才填 |
 | `oss.aliyun.bucket-prefix` | `AliyunOssProperties#bucketPrefix` | `""` | 给所有桶名加统一前缀，避免污染根账号 |
 | `oss.aliyun.default-acl` | `AliyunOssProperties#defaultAcl` | `private` | 建桶默认 ACL |
-| `server.port` | `application.yml` | `8082` | 本仓只有这一份 yml，**没有 dev/prod 等 profile 文件** |
+| `server.port` | `z-oss-standalone.yml` | `8082` | 本仓只有这一份 yml，**没有 dev/prod 等 profile 文件**；由启动类用 `spring.config.additional-location` 显式加载 |
 | `z.base.db.oss.*` → `z.base.db.default.*` | `ModuleDataSourceTemplate#buildDataSource` | host `localhost`、port `3306`、database `""` | 模块化数据源；`oss.*` 缺项时回退 `default.*` |
 | `z.base.db.{oss,default}.initial-size` / `min-idle` / `max-active` / `max-wait` / `remove-abandoned` / `remove-abandoned-timeout` | 同上 | `5` / `5` / `20` / `60000` / `false` / `300` | Druid 池参数；连接保活（`testWhileIdle` + `keepAlive` + `SELECT 1`）是模板硬编码的，不可关 |
-| `mybatis-plus.*` | `application.yml` | 下划线转驼峰；逻辑删除字段 `deleted`，1/0 | |
-| `spring.mvc.pathmatch.matching-strategy` | `application.yml` | `ant_path_matcher` | |
+| `mybatis-plus.*` | `z-oss-standalone.yml` | 下划线转驼峰；逻辑删除字段 `deleted`，1/0 | |
+| `spring.mvc.pathmatch.matching-strategy` | `z-oss-standalone.yml` | `ant_path_matcher` | |
 
 **上传体积与分片**：全仓没有一处 `spring.servlet.multipart.*` 配置，也没有 `MultipartConfigElement` bean，
 因此走 Spring Boot 2.7 的默认口径 —— 单个文件 1MB、整个请求 10MB；要放开必须在 yml 里显式写
@@ -183,9 +183,13 @@ z-oss/
 本仓接的是真实对象存储与真实 MySQL，README 只列**配置键名与环境变量名**，一律不复述任何 key id、
 secret、桶名之外的口令值。
 
-- `application.yml`（`z-oss-api/src/main/resources/`）今天把 MySQL 的地址、账号、口令**硬编码**在文件里，
-  同时写了 `z.base.db.default.*` 的同一组值。这是一处应当修掉的实现问题，不是"允许这么用"的先例：
-  这些值不应被复制进任何文档、镜像层或日志。请改经环境变量注入，并轮换已入库的口令。
+- `z-oss-standalone.yml`（`z-oss-api/src/main/resources/`）里的 MySQL 地址 / 账号 / 口令**一律走占位符**
+  （`${SPRING_DATASOURCE_URL:…}` / `${SPRING_DATASOURCE_USERNAME:}` / `${SPRING_DATASOURCE_PASSWORD:}`，
+  2026-10-19 起已脱敏），`z.base.db.default.*` 同理。
+  ⇒ **任何真实值都不得被复制进文档、镜像层或日志**。
+  ⚠ 该文件**刻意不叫** `application.yml`：库件把配置放 classpath 根会**劫持宿主**
+  （Spring Boot 的 `classpath:/application.yml` 只解析到第一个命中）⇒ 约束与门禁见
+  `_doc/001_arch/02_库件配置约束.md`。
 - 可用的环境变量名（Spring Boot relaxed binding 覆盖同名配置键）：
   `SERVER_PORT`、`SPRING_APPLICATION_NAME`、
   `Z_BASE_DB_OSS_HOST` / `Z_BASE_DB_OSS_PORT` / `Z_BASE_DB_OSS_DATABASE` /
@@ -397,7 +401,7 @@ logback-classic / logback-core / log4j-to-slf4j 会从类路径静默消失。�
 
 1. 它 `COPY z-oss-api/target/z-oss-api-1.0.0-SNAPSHOT-exec.jar`，而 HEAD 版本是 `1.0.4`，
    产物名是 `z-oss-api-1.0.4-exec.jar` —— 文件名已对不上。
-2. `EXPOSE 8088` 与 `HEALTHCHECK` 打的 `http://127.0.0.1:8088/doc.html`，跟 `application.yml`
+2. `EXPOSE 8088` 与 `HEALTHCHECK` 打的 `http://127.0.0.1:8088/doc.html`，跟 `z-oss-standalone.yml`
    的 `server.port: 8082` 是两个端口。
 3. 这个文件里**串了两段 FROM 块**（`8-jre` 那份在前、`8-jdk` 那份在后，第二份还 `COPY ../z-oss-api/...`
    这种越出 build context 的路径）。Docker 只会按文件语义解析，结果是多余的一层 JDK 镜像定义被留在文件里。
