@@ -110,7 +110,7 @@ z-oss/
   被打包进 jar 后由 Spring Boot 在 `/` 直接对外提供。**`z-oss-core` 不再带任何 static**：
   2026-10-18 实测两处都在时，fat jar 里 `BOOT-INF/lib/z-oss-core.jar` 的 classpath 排在
   `BOOT-INF/classes` 前面，旧的前端会赢，控制台一直显示上一个版本的界面而完全无报错。
-- **`z-oss-api`** — 5 个 Controller（37 个方法级映射，见 API 一节）、`AuthenticationInterceptor`、`WebMvcConfig`
+- **`z-oss-api`** — 6 个 Controller（40 个方法级映射，见 API 一节）、`AuthenticationInterceptor`、`WebMvcConfig`
   （只拦 `/api/v1/**`，放行 register/login）、`OssGlobalExceptionHandler`、`OssMybatisPlusConfig`、
   `OssModuleDataSource`、DTO/VO、`ZOssApplication`、`OssWebAutoConfiguration` + `spring.factories`。
 
@@ -272,8 +272,8 @@ npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-api/sr
 
 ## 🔌 API 一览
 
-`z-oss-api` 下 **5 个 Controller、37 个方法级映射**：`/api/v1` 族 31 个
-（`UserController` 6 / `BucketController` 10 / `ObjectController` 15）、`/api/oss-admin` 族 4 个（只读管理面）、
+`z-oss-api` 下 **6 个 Controller、40 个方法级映射**：`/api/v1` 族 34 个
+（`UserController` 6 / `BucketController` 10 / `ObjectController` 15 / `BackupController` 3）、`/api/oss-admin` 族 4 个（只读管理面）、
 `/api/oss/*` 族 2 个（z-opc 侧的别名入口）。鉴权由 `AuthenticationInterceptor` 拦 `/api/v1/**`，
 只放行 `POST /api/v1/user/register` 与 `POST /api/v1/user/login`。
 
@@ -325,6 +325,17 @@ npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-api/sr
 | POST | `/api/v1/object/multipart/part` | `bucketName` + `objectKey` + `uploadId` + `partNumber` + multipart 字段 `file` + 可选 `contentType` |
 | POST | `/api/v1/object/multipart/complete` | `bucketName` + `objectKey` + `uploadId`；返回 `ObjectVO` |
 | POST | `/api/v1/object/multipart/abort` | `bucketName` + `objectKey` + `uploadId`；丢弃已传分片 |
+
+备份链（`BackupController`，base `/api/v1/backup`，TASK-20261012-027）：
+
+| 方法 | 路径 | 关键入参 |
+|------|------|----------|
+| POST | `/api/v1/backup/archive` | multipart 字段 `file`（备份文件）+ 可选 `objectKey`；归档并执行滚动保留（保留最新 N 份） |
+| GET | `/api/v1/backup/list` | 无 —— 当前保留的备份（最新在前） |
+| GET | `/api/v1/backup/stats` | 无 —— 备份链计数（archives / archiveFailures / retentionDeletions / lastError） |
+
+> 备份链**默认不启用**（要 `oss.backup.enabled=true`）：没启用时这三个端点返回 503，
+> 而不是"看起来归档成功"。详见 `_doc/002_ops/01_备份链与滚动保留.md`。
 
 管理面（`OssAdminController`，base `/api/oss-admin`，**只读** —— 本文件只有 `@GetMapping`，没有任何写映射）：
 

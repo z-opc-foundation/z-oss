@@ -1,5 +1,7 @@
 package com.zifang.z.oss.core;
 
+import com.zifang.z.oss.core.backup.BackupChainProperties;
+import com.zifang.z.oss.core.backup.BackupChainService;
 import com.zifang.z.oss.core.file.FileStorageService;
 import com.zifang.z.oss.core.file.impl.FileStorageServiceImpl;
 import com.zifang.z.oss.core.provider.OssProvider;
@@ -49,7 +51,8 @@ import java.util.List;
                 pattern = "com\\.zifang\\.z\\.oss\\.core\\.domain\\.mapper\\..*"
         )
 )
-@EnableConfigurationProperties({FileStorageProperties.class, AliyunOssProperties.class, LocalOssProperties.class})
+@EnableConfigurationProperties({FileStorageProperties.class, AliyunOssProperties.class, LocalOssProperties.class,
+        BackupChainProperties.class})
 public class OssCoreAutoConfiguration {
 
     private static final Logger log = LogManager.getLogger(OssCoreAutoConfiguration.class);
@@ -103,6 +106,24 @@ public class OssCoreAutoConfiguration {
         return new OssProviderManager(
                 providers == null ? new ArrayList<>() : providers,
                 activeProviderType);
+    }
+
+    // ==================== 备份链（滚动保留 N 份） ====================
+
+    /**
+     * 备份链 Bean：归档备份产物到对象存储，并按「保留最新 N 份」滚动淘汰。
+     *
+     * <p><b>默认不装配</b>（要 {@code oss.backup.enabled=true}）——
+     * 备份链会删对象，没配 retention 就让它跑起来等于给了一把没上膛的枪。</p>
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(name = "oss.backup.enabled", havingValue = "true")
+    public BackupChainService backupChainService(OssProviderManager manager,
+                                                  BackupChainProperties props) {
+        log.info("备份链启用: bucket={}, keyPrefix={}, retention={}",
+                props.getBucket(), props.getKeyPrefix(), props.getRetention());
+        return new BackupChainService(manager.provider(), props);
     }
 
     // ==================== FileStorageService ====================
