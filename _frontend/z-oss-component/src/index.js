@@ -5,3 +5,5 @@
 // 因此本模块没有"透传上游报文"的函数，也不该有；字段含义见 services/api.js 顶部的报文形状。
 export {default as OssApp} from './pages/OssApp'
 export {ossApi, ossErrorText, isUnprovisionedError, fmtBytes} from './services/api'
+// 组件文档页（lead 008 §7）：主壳按统一名字取，各仓一致
+export {default as ComponentDocPage} from './pages/ComponentDoc.jsx'

@@ -1,4 +1,4 @@
-import { AppstoreOutlined, CloudUploadOutlined, DashboardOutlined, HomeOutlined, UserOutlined } from '@ant-design/icons'
+import { AppstoreOutlined, CloudUploadOutlined, DashboardOutlined, HomeOutlined, ReadOutlined, UserOutlined } from '@ant-design/icons'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import BucketList from './pages/BucketList'
@@ -15,6 +15,7 @@ export {default as ObjectList} from './pages/ObjectList'
 export {default as UserManage} from './pages/UserManage'
 import HomePage from './pages/HomePage'
 import OssApp from './pages/OssApp.jsx'
+import ComponentDocPage from './pages/ComponentDoc.jsx'
 
 /** 菜单 + 路由清单（lead 008 §10/§14/§16 批量落地）。App 壳在 suit 侧组装。 */
 export const appMeta = { title: 'z-oss', short: 'z-oss' }
@@ -25,6 +26,7 @@ export const menuItems = [
     { key: '/z-oss/bucket', label: '存储桶', icon: <AppstoreOutlined /> },
     { key: '/z-oss/object', label: '对象管理', icon: <CloudUploadOutlined /> },
     { key: '/z-oss/user', label: '用户管理', icon: <UserOutlined /> },
+    { key: '/z-oss/docs', label: '组件文档', icon: <ReadOutlined /> },
 ]
 
 export const routes = [
@@ -33,8 +35,11 @@ export const routes = [
     { path: '/z-oss/bucket', Component: BucketList },
     { path: '/z-oss/object', Component: ObjectList },
     { path: '/z-oss/user', Component: UserManage },
+    { path: '/z-oss/docs', Component: ComponentDocPage },
     { path: '/z-oss/*', Component: OssApp },
 ]
 
 export { default as HomePage } from './pages/HomePage'
 export { default as LoginPage } from './pages/LoginPage'
+// 主壳接线用：文档页统一以 ComponentDocPage 这个名字从主入口导出。
+export { default as ComponentDocPage } from './pages/ComponentDoc.jsx'
