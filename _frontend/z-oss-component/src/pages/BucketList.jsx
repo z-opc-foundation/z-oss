@@ -170,6 +170,10 @@ export default function BucketList() {
                     loading={loading}
                     rowKey="name"
                     stripe
+                    // pagination={false} 豁免说明：存储桶是**用户自己在平台上自建的静态清单**
+                    //（bucketApi.list() 一次取回该账号名下全部桶），桶的数量由账号自己控制、
+                    // 不随桶里的对象/文件数量增长，属于「已知条数少且不变」的小清单，
+                    // 所以按 §2 规则 2 豁免分页 —— 加分页条只会让这一屏塞得更挤。
                     pagination={false}
                 />
             </Card>

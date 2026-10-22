@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useState} from 'react'
-import {Alert, Button, Card, Space, Table, Tag} from 'antd'
+import {Alert, Button, Space, Tag} from 'antd'
 import {ReloadOutlined, RightOutlined} from '@ant-design/icons'
 import {useNavigate} from 'react-router-dom'
 import {ossApi, ossErrorText, isUnprovisionedError} from '../services/api'
-import {PageHeader} from '@yuku123/z-frontend-common/ui'
+import {ListTable, PageHeader} from '@yuku123/z-frontend-common/ui'
 
 const COLUMNS = [
     {
@@ -74,30 +74,42 @@ export default function BucketListPage() {
                     message="接口通了，这个账号名下确实还没有桶"
                 />
             )}
-            <Card size="small"
-                  extra={<Button icon={<ReloadOutlined/>} onClick={load} loading={loading}>刷新</Button>}>
-                <Table
-                    rowKey={(r) => r.id ?? r.name}
-                    size="small"
-                    loading={loading}
-                    columns={[
-                        ...COLUMNS,
-                        {
-                            title: '', key: 'go', width: 96,
-                            render: (_, r) => (
-                                <Space>
-                                    <Button size="small" type="link"
-                                            onClick={() => navigate(`/oss/objects?bucket=${encodeURIComponent(r.name)}`)}>
-                                        浏览对象 <RightOutlined/>
-                                    </Button>
-                                </Space>
-                            ),
-                        },
-                    ]}
-                    dataSource={rows}
-                    pagination={{pageSize: 20, hideOnSinglePage: true}}
-                />
-            </Card>
+            {/* 桶列表 —— 走基座 ListTable（lead 008 §2 规则 2/3/4 三件套）。
+                【分页为什么这么写】原来只有 pagination={{pageSize: 20, hideOnSinglePage: true}}，
+                缺 showSizeChanger / pageSizeOptions / showTotal 三项；hideOnSinglePage 还会在只有
+                一页时把分页条整个藏掉，与「列表页必须有分页」冲突 ⇒ 去掉它、补齐四件套，
+                pageSize 保留原来的 20（不顺手改成基座默认的 10）。 */}
+            <ListTable
+                cardProps={{size: 'small'}}
+                cardExtra={<Button icon={<ReloadOutlined/>} onClick={load} loading={loading}>刷新</Button>}
+                rows={rows}
+                rowKey={(r) => r.id ?? r.name}
+                loading={loading}
+                columns={[
+                    ...COLUMNS,
+                    {
+                        title: '', key: 'go', width: 96,
+                        render: (_, r) => (
+                            <Space>
+                                <Button size="small" type="link"
+                                        onClick={() => navigate(`/oss/objects?bucket=${encodeURIComponent(r.name)}`)}>
+                                    浏览对象 <RightOutlined/>
+                                </Button>
+                            </Space>
+                        ),
+                    },
+                ]}
+                searchKeys="name,region"
+                searchPlaceholder="按桶名 / 区域过滤"
+                emptyTitle="暂无桶数据"
+                emptyDescription="接口通了，但该账号名下还没有桶。"
+                pagination={{
+                    pageSize: 20,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '20', '50', '100'],
+                    showTotal: (total) => `共 ${total} 条`,
+                }}
+            />
         </div>
     )
 }

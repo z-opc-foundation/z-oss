@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react'
-import {Breadcrumb, Button, Card, Form, Input, message, Modal, Select, Table, Upload,} from 'antd'
+import {Breadcrumb, Button, Form, Input, message, Modal, Select, Space, Upload,} from 'antd'
 import {
     ArrowLeftOutlined,
     CopyOutlined,
@@ -11,6 +11,7 @@ import {
     UploadOutlined,
 } from '@ant-design/icons'
 import {useNavigate, useParams} from 'react-router-dom'
+import {ListTable} from '@yuku123/z-frontend-common/ui'
 import {bucketApi, objectApi} from '../services/api'
 import FileSizeFormatter from './FileSizeFormatter'
 
@@ -265,31 +266,13 @@ export default function ObjectList() {
 
     return (
         <div>
-            <Card
-                title={
-                    <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-                        <Button icon={<ArrowLeftOutlined/>} onClick={() => navigate(-1)}>
-                            返回
-                        </Button>
-                        <span style={{fontWeight: 'bold', fontSize: 16}}>
-              {bucketName} / {currentPrefix || '根目录'}
-            </span>
-                    </div>
-                }
-                extra={
-                    <div style={{display: 'flex', gap: 10}}>
-                        <Button icon={<FolderAddOutlined/>} onClick={() => setFolderOpen(true)}>
-                            新建文件夹
-                        </Button>
-                        <Upload {...uploadProps}>
-                            <Button type="primary" icon={<UploadOutlined/>}>
-                                上传文件
-                            </Button>
-                        </Upload>
-                    </div>
-                }
-            >
-                <div style={{padding: '10px 0', borderBottom: '1px solid #eee', marginBottom: 10}}>
+            {/* 面包屑 + 返回是**路径导航**，不是表内动作 —— 放在卡片外面，
+                卡片里只留「当前前缀下的对象」这一件事。 */}
+            <div style={{padding: '10px 0', borderBottom: '1px solid #eee', marginBottom: 10}}>
+                <Space>
+                    <Button icon={<ArrowLeftOutlined/>} onClick={() => navigate(-1)}>
+                        返回
+                    </Button>
                     <Breadcrumb
                         separator="/"
                         items={[
@@ -309,30 +292,55 @@ export default function ObjectList() {
                             })),
                         ]}
                     />
-                </div>
+                </Space>
+            </div>
 
-                <Table
-                    dataSource={objects}
-                    columns={columns}
-                    loading={loading}
-                    rowKey="key"
-                    stripe
-                    pagination={false}
-                    rowSelection={{
-                        selectedRowKeys,
-                        onChange: setSelectedRowKeys,
-                        getCheckboxProps: (record) => ({name: record.key}),
-                    }}
-                />
-
-                {selectedRowKeys.length > 0 && (
-                    <div style={{marginTop: 15, paddingTop: 15, borderTop: '1px solid #eee'}}>
-                        <Button type="primary" danger onClick={handleBatchDelete}>
-                            批量删除 ({selectedRowKeys.length})
+            {/* 对象列表 —— 走基座 ListTable（lead 008 §2 规则 2/3/4 三件套：
+                分页四件套 + 端侧过滤框 + EmptyState）。
+                【为什么不再 pagination={false}】当前前缀下的对象是用户自己上传出来的，
+                行数随上传量增长，不是「已知 ≤10 行且不变」的小清单 ⇒ 必须分页。 */}
+            <ListTable
+                rows={objects}
+                columns={columns}
+                rowKey="key"
+                loading={loading}
+                stripe
+                cardTitle={
+                    <span style={{fontWeight: 'bold', fontSize: 16}}>
+                        {bucketName} / {currentPrefix || '根目录'}
+                    </span>
+                }
+                cardExtra={
+                    <Space>
+                        <Button icon={<FolderAddOutlined/>} onClick={() => setFolderOpen(true)}>
+                            新建文件夹
                         </Button>
-                    </div>
-                )}
-            </Card>
+                        <Upload {...uploadProps}>
+                            <Button type="primary" icon={<UploadOutlined/>}>
+                                上传文件
+                            </Button>
+                        </Upload>
+                    </Space>
+                }
+                // 行选择必须保留：下面的「批量删除」按钮靠 selectedRowKeys 驱动。
+                rowSelection={{
+                    selectedRowKeys,
+                    onChange: setSelectedRowKeys,
+                    getCheckboxProps: (record) => ({name: record.key}),
+                }}
+                searchKeys="name,contentType"
+                searchPlaceholder="按对象名 / 类型过滤"
+                emptyTitle="这个前缀下没有对象"
+                emptyDescription="换个前缀看看，或先上传一个文件。"
+            />
+
+            {selectedRowKeys.length > 0 && (
+                <div style={{marginTop: 15, paddingTop: 15, borderTop: '1px solid #eee'}}>
+                    <Button type="primary" danger onClick={handleBatchDelete}>
+                        批量删除 ({selectedRowKeys.length})
+                    </Button>
+                </div>
+            )}
 
             {/* Create Folder Dialog */}
             <Modal
