@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useState} from 'react'
-import {Alert, Button, Card, Col, Descriptions, Input, Row, Select, Space, Statistic, Table, Tag} from 'antd'
+import {Alert, Button, Col, Descriptions, Input, Row, Select, Space, Statistic, Tag} from 'antd'
 import {FolderOutlined, ReloadOutlined, SearchOutlined} from '@ant-design/icons'
 import {useSearchParams} from 'react-router-dom'
 import {fmtBytes, ossApi, ossErrorText, isUnprovisionedError} from '../services/api'
-import {PageHeader, TableToolbar} from '@yuku123/z-frontend-common/ui'
+import {ListTable, PageHeader, TableToolbar} from '@yuku123/z-frontend-common/ui'
 
 const COLUMNS = [
     {
@@ -179,17 +179,17 @@ export default function ObjectListPage() {
                     description="下面的对象列表来自 z-oss 的元数据库，不代表存储侧真有这些对象 —— 这是配置/存储不一致，不是「没数据」。"
                 />
             )}
-            <Card size="small">
-                <Table
-                    rowKey={(r) => r.id ?? r.object_key}
-                    size="small"
-                    loading={loading}
-                    columns={COLUMNS}
-                    dataSource={rows}
-                    pagination={{pageSize: 20, showSizeChanger: false}}
-                    locale={{emptyText: error ? '查询失败（见上方错误）' : '接口通了，该前缀下没有对象'}}
-                />
-            </Card>
+            {/* 对象清单是「整表在前端」的形态（接口按前缀返回全量）⇒ 走基座 ListTable：
+                分页/空态由基座统一承接；查询走前缀 + 查询按钮（后端参数），
+                所以不传 searchKeys —— 页面上已经有自己的查询控件，再加一个过滤框就是两个搜索框。 */}
+            <ListTable
+                rows={rows}
+                columns={COLUMNS}
+                rowKey={(r) => r.id ?? r.object_key}
+                loading={loading}
+                emptyTitle="暂无对象"
+                emptyDescription={error ? '查询失败（见上方错误）' : '接口通了，该前缀下没有对象'}
+            />
         </div>
     )
 }
