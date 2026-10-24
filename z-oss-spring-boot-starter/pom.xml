@@ -7,11 +7,11 @@
     <parent>
         <groupId>io.github.yuku123</groupId>
         <artifactId>z-oss</artifactId>
-        <version>1.0.4</version>
+        <version>1.0.5</version>
     </parent>
 
     <groupId>io.github.yuku123</groupId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <artifactId>z-oss-spring-boot-starter</artifactId>
     <name>z-oss-spring-boot-starter</name>
     <description>z-oss 自动装配：本地/阿里云/S3(MinIO) 各平台对象存储对接 + OssTemplate 门面</description>
