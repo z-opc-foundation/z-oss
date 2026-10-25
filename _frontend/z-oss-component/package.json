@@ -1,6 +1,6 @@
 {
   "name": "@yuku123/z-oss-component",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "z-oss 可复用前端组件：对象存储管理台页面集（manifest + 自洽 request，apiBase 经 configureOss 注入；lead 005 §9.3）",
   "type": "module",
   "main": "./dist/index.js",
