@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react'
-import {Button, Card, Form, Input, message, Modal, Select, Table, Tag} from 'antd'
+import React, {useEffect, useMemo, useState} from 'react'
+import {Button, Card, Form, Input, message, Modal, Select, Space, Table, Tag} from 'antd'
 import {DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined} from '@ant-design/icons'
 import {useNavigate} from 'react-router-dom'
 import {bucketApi} from '../services/api'
@@ -30,6 +30,15 @@ export default function BucketList() {
     useEffect(() => {
         loadBuckets()
     }, [])
+
+    // lead 008 §2 规则 3：客户端查询过滤（bucketApi.list() 一次取回全部桶，过滤在端侧做）。
+    // 参与匹配的字段取自本页 columns 真实存在的 dataIndex：name / region。
+    const [keyword, setKeyword] = useState('')
+    const filteredBuckets = useMemo(() => {
+        const kw = keyword.trim().toLowerCase()
+        if (!kw) return buckets
+        return buckets.filter((b) => `${b.name || ''} ${b.region || ''}`.toLowerCase().includes(kw))
+    }, [buckets, keyword])
 
     const loadBuckets = async () => {
         try {
@@ -159,13 +168,17 @@ export default function BucketList() {
             <Card
                 title="存储桶管理"
                 extra={
-                    <Button type="primary" icon={<PlusOutlined/>} onClick={showCreateDialog}>
-                        创建存储桶
-                    </Button>
+                    <Space>
+                        <Input.Search allowClear placeholder="按桶名称 / 区域过滤" style={{width: 240}}
+                                      onChange={(e) => setKeyword(e.target.value)}/>
+                        <Button type="primary" icon={<PlusOutlined/>} onClick={showCreateDialog}>
+                            创建存储桶
+                        </Button>
+                    </Space>
                 }
             >
                 <Table
-                    dataSource={buckets}
+                    dataSource={filteredBuckets}
                     columns={columns}
                     loading={loading}
                     rowKey="name"
