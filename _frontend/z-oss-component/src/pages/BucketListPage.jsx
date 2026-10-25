@@ -55,7 +55,6 @@ export default function BucketListPage() {
         <div>
             <PageHeader
                 title="Bucket 列表"
-                subtitle="GET /api/oss-admin/buckets · 只读，本平台不开建桶/删桶入口"
             />
             {error && (
                 <Alert

@@ -92,7 +92,6 @@ export default function ObjectListPage() {
         <div>
             <PageHeader
                 title="对象浏览"
-                subtitle="GET /api/oss-admin/objects · 只读，不提供上传/删除"
             />
             <TableToolbar
                 left={(
