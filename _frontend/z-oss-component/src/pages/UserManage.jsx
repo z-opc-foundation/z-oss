@@ -166,7 +166,7 @@ export default function UserManage() {
                             >
 {`curl -H "X-Zoss-Access-Key: ${userInfo.accessKey}" \\
      -H "X-Zoss-Secret-Key: ${userInfo.secretKey}" \\
-     http://localhost:8088/api/v1/bucket`}
+     ${window.location.origin}/api/v1/bucket`}
               </pre>
                         </div>
                     }
