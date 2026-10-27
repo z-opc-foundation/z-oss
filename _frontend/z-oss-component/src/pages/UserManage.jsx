@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react'
 import {Alert, Button, Card, Descriptions, Form, Input, message, Modal, Tag} from 'antd'
 import {EditOutlined, LockOutlined, ReloadOutlined,} from '@ant-design/icons'
+import {ErrorState} from '@yuku123/z-frontend-common/ui'
 import {userApi} from '../services/api'
 
 function formatTime(time) {
@@ -11,6 +12,8 @@ function formatTime(time) {
 export default function UserManage() {
     const [userInfo, setUserInfo] = useState({})
     const [loading, setLoading] = useState(false)
+    // lead 008 §17：读失败常驻报错 + 重试，避免空白字段被误读成“用户没有密钥”。
+    const [loadError, setLoadError] = useState(null)
 
     // Username modal
     const [usernameOpen, setUsernameOpen] = useState(false)
@@ -32,11 +35,15 @@ export default function UserManage() {
     }, [])
 
     const loadUserInfo = async () => {
+        setLoading(true)
         try {
             const res = await userApi.getInfo()
-            setUserInfo(res)
+            setUserInfo(res || {})
+            setLoadError(null)
         } catch (error) {
-            console.error('获取用户信息失败:', error)
+            setLoadError(error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -51,6 +58,7 @@ export default function UserManage() {
             usernameForm.resetFields()
         } catch (error) {
             console.error('修改用户名失败:', error)
+            message.error(error?.response?.data?.message || error?.message || '修改用户名失败')
         } finally {
             setUsernameLoading(false)
         }
@@ -67,6 +75,7 @@ export default function UserManage() {
             message.success('AK/SK已重置，请妥善保管')
         } catch (error) {
             console.error('重置密钥失败:', error)
+            message.error(error?.response?.data?.message || error?.message || '重置密钥失败')
         } finally {
             setResetLoading(false)
         }
@@ -84,6 +93,7 @@ export default function UserManage() {
             passwordForm.resetFields()
         } catch (error) {
             console.error('修改密码失败:', error)
+            message.error(error?.response?.data?.message || error?.message || '修改密码失败')
         } finally {
             setPasswordLoading(false)
         }
@@ -96,24 +106,39 @@ export default function UserManage() {
 
     return (
         <div>
-            <Card title="用户信息">
+            {loadError && (
+                <ErrorState
+                    error={loadError}
+                    title="用户信息没有读到"
+                    description="接口没有返回当前用户资料，下面的空字段不代表账号没有密钥。"
+                    onRetry={loadUserInfo}
+                    style={{marginBottom: 16}}
+                />
+            )}
+            <Card title="用户信息" loading={loading}>
                 <Descriptions column={2} bordered size="small">
-                    <Descriptions.Item label="用户名">{userInfo.username}</Descriptions.Item>
+                    <Descriptions.Item label="用户名">{userInfo.username || '-'}</Descriptions.Item>
                     <Descriptions.Item label="Access Key">
-                        <Tag style={{cursor: 'pointer'}} onClick={() => copyToClipboard(userInfo.accessKey)}>
-                            {userInfo.accessKey}
-                        </Tag>
+                        {userInfo.accessKey
+                            ? <Tag style={{cursor: 'pointer'}} onClick={() => copyToClipboard(userInfo.accessKey)}>
+                                {userInfo.accessKey}
+                            </Tag>
+                            : '-'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Secret Key">
-                        <Tag color="warning" style={{cursor: 'pointer'}}
-                             onClick={() => copyToClipboard(userInfo.secretKey)}>
-                            {userInfo.secretKey}
-                        </Tag>
+                        {userInfo.secretKey
+                            ? <Tag color="warning" style={{cursor: 'pointer'}}
+                                   onClick={() => copyToClipboard(userInfo.secretKey)}>
+                                {userInfo.secretKey}
+                            </Tag>
+                            : '-'}
                     </Descriptions.Item>
                     <Descriptions.Item label="状态">
-                        <Tag color={userInfo.status === 1 ? 'success' : 'error'}>
-                            {userInfo.status === 1 ? '启用' : '禁用'}
-                        </Tag>
+                        {userInfo.status === 1
+                            ? <Tag color="success">启用</Tag>
+                            : userInfo.status === 0
+                                ? <Tag color="error">禁用</Tag>
+                                : '-'}
                     </Descriptions.Item>
                     <Descriptions.Item label="创建时间">
                         {formatTime(userInfo.createTime)}
@@ -122,7 +147,9 @@ export default function UserManage() {
 
                 <div style={{marginTop: 20, display: 'flex', gap: 10}}>
                     <Button icon={<EditOutlined/>} onClick={() => {
+                        // lead 008 §19：编辑弹窗回填当前用户名，不是让用户从空白重打一遍。
                         usernameForm.resetFields();
+                        usernameForm.setFieldsValue({username: userInfo.username});
                         setUsernameOpen(true)
                     }}>
                         修改用户名
@@ -164,8 +191,8 @@ export default function UserManage() {
                                     fontFamily: 'monospace',
                                 }}
                             >
-{`curl -H "X-Zoss-Access-Key: ${userInfo.accessKey}" \\
-     -H "X-Zoss-Secret-Key: ${userInfo.secretKey}" \\
+{`curl -H "X-Zoss-Access-Key: ${userInfo.accessKey || '<你的 Access Key>'}" \\
+     -H "X-Zoss-Secret-Key: ${userInfo.secretKey || '<你的 Secret Key>'}" \\
      ${window.location.origin}/api/v1/bucket`}
               </pre>
                         </div>
@@ -177,6 +204,7 @@ export default function UserManage() {
             <Modal
                 title="修改用户名"
                 open={usernameOpen}
+                maskClosable={false}
                 onCancel={() => setUsernameOpen(false)}
                 footer={[
                     <Button key="cancel" onClick={() => setUsernameOpen(false)}>取消</Button>,
@@ -192,7 +220,7 @@ export default function UserManage() {
                     onFinish={handleUpdateUsername}
                 >
                     <Form.Item
-                        label="新用户名"
+                        label="用户名"
                         name="username"
                         rules={[{required: true, message: '请输入用户名'}]}
                     >
