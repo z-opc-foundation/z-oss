@@ -92,7 +92,7 @@
              （地板按坐标供 knife4j-openapi3-* 4.1.0，与本仓迁移前同值） -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
         </dependency>
 
         <!-- 测试台。此前本模块 0 支测试，下载/分片这些语义全靠编译过来说话 ——

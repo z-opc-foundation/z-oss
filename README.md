@@ -29,11 +29,11 @@
 |------|-----|
 | **仓库** | `z-oss`（对象存储服务） |
 | **Maven 坐标** | `io.github.yuku123:z-oss` · `z-oss-common` · `z-oss-core` · `z-oss-api` |
-| **当前版本** | `1.0.4`（根 POM 用的是普通 `<version>`，**不是** `<revision>` + CI-friendly，子模块 `<parent>` 里写死 `1.0.4`） |
-| **父项目** | `io.github.yuku123:z-boot-parent:1.1.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；第三方地板与兄弟仓权威表均已并入 parent 自身） |
+| **当前版本** | `1.0.5`（根 POM 用的是普通 `<version>`，**不是** `<revision>` + CI-friendly，子模块 `<parent>` 里写死 `1.0.5`） |
+| **父项目** | `io.github.yuku123:z-boot-parent:1.2.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；第三方地板与兄弟仓权威表均已并入 parent 自身） |
 | **Maven Central** | 已发布（2026-09-30 ranged GET `-r 0-0` 实测，均 **206**）：`z-oss-1.0.4.pom`、`z-oss-common-1.0.4.pom`、`z-oss-core-1.0.4.pom`、`z-oss-api-1.0.4.pom`、`z-oss-api-1.0.4-exec.jar`。`maven-metadata.xml` 上四个坐标的历史版本为 `1.0.1`（根/common）、`1.0.2`–`1.0.4`（core/api） |
 | **默认端口** | `8082`（`z-oss-api/src/main/resources/z-oss-standalone.yml` 的 `server.port`（**刻意不叫** `application.yml`，见 `_doc/001_arch/02_库件配置约束.md`）；**未配置** `server.servlet.context-path`，所以没有 `/oss` 之类前缀） |
-| **运行口径** | Java 8（`java.version=1.8` 由 parent 下发）· Spring Boot 2.7.18 · 日志实现 Log4j2 `2.17.2`（本仓按坐标逐条压回，刻意不与地板的 2.25.4 同值） |
+| **运行口径** | Java 17（`java.version=17` 由 parent 下发）· Spring Boot 3.3.13 · 日志实现 Log4j2 `2.17.2`（本仓按坐标逐条压回，刻意不与地板的 2.25.4 同值） |
 | **最近更新** | 2026-09-30 |
 
 > 消费方注意：fleet 里 `z-oss` 那一格当前面值也是 `1.0.4`，与 HEAD 同值；根 POM 的
@@ -84,7 +84,7 @@
 
 ```
 z-oss/
-├── pom.xml                # 根聚合 POM：parent=z-boot-parent:1.1.0，<version>1.0.4</version>，4 个 module
+├── pom.xml                # 根聚合 POM：parent=z-boot-parent:1.2.0，<version>1.0.4</version>，4 个 module
 ├── z-oss-common/          # 纯 enum + exception，<dependencies> 为空（刻意不引 Spring）
 ├── z-oss-core/            # Provider 抽象 + domain(MyBatis-Plus 实体/Mapper/Service) + storage + hook
 ├── z-oss-api/             # REST 层 + 启动类 + 数据源装配 + z-oss-standalone.yml（**不叫** application* ⇒ 不劫持宿主；可独立跑，也可被 main-starter 引入）
@@ -129,7 +129,7 @@ z-oss/
 
 | 层级 | 技术 | 版本来源 |
 |------|------|----------|
-| 语言 / 运行时 | Java 8（`source`/`target` 8，非 `--release`；class major 52） | `z-boot-parent:1.1.0` 下发 |
+| 语言 / 运行时 | Java 17（`source`/`target` 8，非 `--release`；class major 61） | `z-boot-parent:1.2.0` 下发 |
 | 框架 | Spring Boot 2.7.18 | 同上（`spring-boot.version` 由 parent 供，本仓只在 pluginManagement 保留 `${spring-boot.version}` 兜底） |
 | 持久层 | MyBatis-Plus 3.5.7 + `mybatis-spring` 2.1.2（本仓按坐标写死压回，地板那一格是 2.0.6） | `z-boot-parent` 自带地板 + 根 POM |
 | 连接池 | Druid 1.2.23（由 `z-boot-datasource-starter` 传递带入，本仓 `druid.version` 死键已删） | 地板 / starter |
@@ -221,9 +221,9 @@ secret、桶名之外的口令值。
 mvn clean install -DskipTests
 ```
 
-第三方版本一律由 `z-boot-parent:1.1.0` 供给（第三方地板与兄弟仓权威表均已并入 parent 自身），
+第三方版本一律由 `z-boot-parent:1.2.0` 供给（第三方地板与兄弟仓权威表均已并入 parent 自身），
 模块 POM 里不应再出现字面版本钉。构建报找不到版本时，先确认能解析到
-`io.github.yuku123:z-boot-parent:1.1.0`（`relativePath` 留空，它在 repo1 不在磁盘）。
+`io.github.yuku123:z-boot-parent:1.2.0`（`relativePath` 留空，它在 repo1 不在磁盘）。
 本仓没有 `.mvn/`、没有 `Makefile`、没有 `mvnw`。
 
 ### 本地跑起来

@@ -12,7 +12,7 @@
     <parent>
         <groupId>io.github.yuku123</groupId>
         <artifactId>z-boot-parent</artifactId>
-        <version>1.1.0</version>
+        <version>1.2.0</version>
         <relativePath/>
     </parent>
 
@@ -97,7 +97,7 @@
              直接条目压回 2.17.2 —— 本仓 tree 里这一族今天全是 2.17.2（含 spring-boot 2.7.18 的
              starter-log4j2 带进来的 core/jul/slf4j-impl），删掉就是悄悄换日志实现。抬版本是另一个
              决定（要连 Java 8 字节码一起验），不在这一刀里顺手做。 -->
-        <log4j.version>2.17.2</log4j.version>
+        <log4j.version>2.25.4</log4j.version>
 
         <!-- 本仓此前零测试（扫测 tests=0，4 个子模块无任何 surefire 报告），
              父链 z-boot-parent:1.0.21 的 DM 也不供 junit，故自留版本键。
@@ -118,7 +118,7 @@
             <dependency>
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-oss</artifactId>
-                <version>${project.version}</version>
+                <version>1.2.0</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yuku123</groupId>
@@ -178,15 +178,10 @@
                 <version>${log4j.version}</version>
             </dependency>
 
-            <!-- 全树唯一一处**降档**（两侧 dependency:tree 量出来的，不是推演）：地板把 mybatis-spring
-                 钉在 ${mybatis-spring.version}=2.0.6，而 mybatis-plus-boot-starter 3.5.7（与地板同值）
-                 自带、本仓基线实测跑的是 2.1.2。继承来的直接 DM 会把这个低值打到传递位置 ⇒ 必须按坐标
-                 写直接条目压回。要不要由地板统一管，是另一件事（z-kb 同一格也是这么留的，待裁）。 -->
-            <dependency>
-                <groupId>org.mybatis</groupId>
-                <artifactId>mybatis-spring</artifactId>
-                <version>2.1.2</version>
-            </dependency>
+            <!-- 原 SB2 时代的 mybatis-spring 2.1.2 直钉已删（2026-10-30 Java17/SB3 火车）：
+                 地板 DM 已升 ${mybatis-spring.version}=3.0.4，z-boot-datasource-starter 也已换
+                 mybatis-plus-spring-boot3-starter；再钉 2.x 会以 String 型 factoryBeanObjectType
+                 打爆 Spring 6 的 MapperFactoryBean 解析（实测 ObjectDownloadControllerTest 全红）。 -->
 
             <!-- ===== 迁移后 tree 的账（基线 116 坐标 / 迁移后 114；两侧同一条命令、同一个
                  grep -oE 'g:a:jar:v'，基线取 HEAD 的 worktree，绝不手抄）=====

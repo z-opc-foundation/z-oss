@@ -1,3 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.zifang.z.oss.host.OssHostAutoConfiguration,\
-com.zifang.z.oss.web.config.OssWebAutoConfiguration
