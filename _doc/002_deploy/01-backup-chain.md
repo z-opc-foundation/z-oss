@@ -88,7 +88,7 @@ z-graph  POST /maintenance/snapshot?branch=main&stream=true   → 快照字节�
 z-oss    POST /api/v1/backup/archive  (multipart file)          → 归档 + 滚动保留
 ```
 
-- z-graph 侧的口径见 z-graph 仓 `_doc/002_ops/01_GC可达性与回收规则.md` 第 9 节；
+- z-graph 侧的口径见 z-graph 仓 `_doc/002_deploy/01-gc-reachability.md` 第 9 节；
 - 定时由 z-schedule 触发（handler 见 z-schedule 仓 `GraphMaintenanceHandler`）；
 - **回读校验**（产物能不能真的用）由 z-graph 侧 `SnapshotImportReadbackTest` 做：
   把 z-oss 取回的那份 `importSnapshot` 进新仓库，逐行比对内容清单。

@@ -335,7 +335,7 @@ npm run build          # 产物在 _frontend/dist，需手工拷进 z-oss-api/sr
 | GET | `/api/v1/backup/stats` | 无 —— 备份链计数（archives / archiveFailures / retentionDeletions / lastError） |
 
 > 备份链**默认不启用**（要 `oss.backup.enabled=true`）：没启用时这三个端点返回 503，
-> 而不是"看起来归档成功"。详见 `_doc/002_ops/01_备份链与滚动保留.md`。
+> 而不是"看起来归档成功"。详见 `_doc/002_deploy/01-backup-chain.md`。
 
 管理面（`OssAdminController`，base `/api/oss-admin`，**只读** —— 本文件只有 `@GetMapping`，没有任何写映射）：
 
@@ -470,7 +470,8 @@ MIT，见仓库根 [`LICENSE`](LICENSE)（版权行 `Copyright (c) 2026 z-opc-fo
   - [`00-overview.md`](_doc/001_arch/00-overview.md) — 项目总览 / 模块关系 / 端口 / 技术栈 / 开发优先级
     （注意该文的口径比代码旧：它写的端口是 8094 与 8080、Spring Boot 2.7.12、MyBatis-Plus 3.3.1，
     实体名写作 `ZOssBucket` / `ZOssObject`，实测均与当前实现不符，以本文为准）
-- [`_doc/002_deploy/`](_doc/002_deploy/) — 部署 SQL（本仓这一层只放了 SQL，没有部署说明）:
+- [`_doc/002_deploy/`](_doc/002_deploy/) — 部署 SQL 与运维口径:
+  - [`01-backup-chain.md`](_doc/002_deploy/01-backup-chain.md) — 备份归档与滚动保留策略
   - [`init/`](_doc/002_deploy/init/)
     - [`db.sql`](_doc/002_deploy/init/db.sql) — `oss_user` / `oss_bucket` / `oss_object` / `oss_part` / `oss_multipart` 建表
     - [`oss.sql`](_doc/002_deploy/init/oss.sql) — 同一套表结构的另一份写法
