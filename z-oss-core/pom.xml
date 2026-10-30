@@ -41,7 +41,7 @@
 
 
     <artifactId>z-oss-core</artifactId>
-    <name>z-oss-core</name>
+    <name>z-oss :: core</name>
     <description>Z-OSS core: provider abstraction + business logic + Spring Boot auto-configuration + hooks for business layer integration.</description>
 
     <!--

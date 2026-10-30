@@ -20,8 +20,8 @@
     <artifactId>z-oss</artifactId>
     <version>1.0.5</version>
     <packaging>pom</packaging>
-    <name>z-oss (Object Storage Aggregator)</name>
-    <description>Z-OSS: A pluggable object storage abstraction layer (Aliyun OSS / MinIO / Local) for Spring Boot.</description>
+    <name>z-oss :: root</name>
+    <description>Z-OSS: A pluggable object storage abstraction layer (Aliyun OSS / MinIO / Local) for Spring Boot. / Object Storage Aggregator</description>
 
     <url>https://github.com/yuku123/z-oss</url>
     <licenses>

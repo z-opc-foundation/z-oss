@@ -41,7 +41,7 @@
 
 
     <artifactId>z-oss-api</artifactId>
-    <name>z-oss-api</name>
+    <name>z-oss :: api</name>
     <description>Z-OSS API: Spring Boot executable jar exposing REST endpoints (depends on z-oss-core).</description>
 
     <dependencies>

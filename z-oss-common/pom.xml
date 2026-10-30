@@ -41,7 +41,7 @@
 
 
     <artifactId>z-oss-common</artifactId>
-    <name>z-oss-common</name>
+    <name>z-oss :: common</name>
     <description>Shared enums, exceptions and constants for Z-OSS (Aliyun OSS / MinIO / Local storage abstraction).</description>
 
     <dependencies>
