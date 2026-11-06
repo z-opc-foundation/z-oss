@@ -29,7 +29,7 @@
 |------|-----|
 | **仓库** | `z-oss`（对象存储服务） |
 | **Maven 坐标** | `io.github.yuku123:z-oss` · `z-oss-common` · `z-oss-core` · `z-oss-api` |
-| **当前版本** | `1.0.5`（根 POM 用的是普通 `<version>`，**不是** `<revision>` + CI-friendly，子模块 `<parent>` 里写死 `1.0.5`） |
+| **当前版本** | `1.0.6`（根 POM 用的是普通 `<version>`，**不是** `<revision>` + CI-friendly，子模块 `<parent>` 里写死 `1.0.6`） |
 | **父项目** | `io.github.yuku123:z-boot-parent:1.2.2`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；第三方地板与兄弟仓权威表均已并入 parent 自身） |
 | **Maven Central** | 已发布（2026-09-30 ranged GET `-r 0-0` 实测，均 **206**）：`z-oss-1.0.4.pom`、`z-oss-common-1.0.4.pom`、`z-oss-core-1.0.4.pom`、`z-oss-api-1.0.4.pom`、`z-oss-api-1.0.4-exec.jar`。`maven-metadata.xml` 上四个坐标的历史版本为 `1.0.1`（根/common）、`1.0.2`–`1.0.4`（core/api） |
 | **默认端口** | `8082`（`z-oss-api/src/main/resources/z-oss-standalone.yml` 的 `server.port`（**刻意不叫** `application.yml`，见 `_doc/001_arch/02_库件配置约束.md`）；**未配置** `server.servlet.context-path`，所以没有 `/oss` 之类前缀） |
