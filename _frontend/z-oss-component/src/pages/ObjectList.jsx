@@ -2,14 +2,11 @@ import React, {useEffect, useMemo, useState} from 'react'
 import {Breadcrumb, Button, Form, Input, message, Modal, Select, Space, Upload,} from 'antd'
 import {
     ArrowLeftOutlined,
-    CopyOutlined,
-    DeleteOutlined,
-    DownloadOutlined,
     FileOutlined,
     FolderAddOutlined,
     FolderOutlined,
     UploadOutlined,
-} from '@ant-design/icons'
+} from '@ant-design/icons';
 import {useNavigate, useParams} from 'react-router-dom'
 import {ListTable} from '@yuku123/z-frontend-common/ui'
 import {bucketApi, objectApi} from '../services/api'
@@ -249,14 +246,14 @@ export default function ObjectList() {
             render: (_, record) => (
                 <>
                     {!record.folder && (
-                        <Button type="link" icon={<DownloadOutlined/>} onClick={() => handleDownload(record)}>
+                        <Button type="link" size="small" onClick={() => handleDownload(record)}>
                             下载
                         </Button>
                     )}
-                    <Button type="link" icon={<CopyOutlined/>} onClick={() => handleCopy(record)}>
+                    <Button type="link" size="small" onClick={() => handleCopy(record)}>
                         复制
                     </Button>
-                    <Button type="link" danger icon={<DeleteOutlined/>} onClick={() => handleDelete(record)}>
+                    <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
                         删除
                     </Button>
                 </>

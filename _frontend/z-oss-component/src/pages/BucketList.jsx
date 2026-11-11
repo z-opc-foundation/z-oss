@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useState} from 'react'
 import {Button, Card, Form, Input, message, Modal, Select, Space, Table, Tag} from 'antd'
-import {DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined} from '@ant-design/icons'
+import {PlusOutlined} from '@ant-design/icons';
 import {useNavigate} from 'react-router-dom'
 import {bucketApi} from '../services/api'
 
@@ -149,13 +149,13 @@ export default function BucketList() {
             fixed: 'right',
             render: (_, record) => (
                 <>
-                    <Button type="link" icon={<FolderOpenOutlined/>} onClick={() => goToObjects(record.name)}>
+                    <Button type="link" size="small" onClick={() => goToObjects(record.name)}>
                         文件
                     </Button>
-                    <Button type="link" icon={<EditOutlined/>} onClick={() => showEditDialog(record)}>
+                    <Button type="link" size="small" onClick={() => showEditDialog(record)}>
                         编辑
                     </Button>
-                    <Button type="link" danger icon={<DeleteOutlined/>} onClick={() => handleDelete(record)}>
+                    <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
                         删除
                     </Button>
                 </>
