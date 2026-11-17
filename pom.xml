@@ -97,7 +97,7 @@
              直接条目压回 2.17.2 —— 本仓 tree 里这一族今天全是 2.17.2（含 spring-boot 2.7.18 的
              starter-log4j2 带进来的 core/jul/slf4j-impl），删掉就是悄悄换日志实现。抬版本是另一个
              决定（要连 Java 8 字节码一起验），不在这一刀里顺手做。 -->
-        <log4j.version>2.25.4</log4j.version>
+        <log4j.version>2.26.1</log4j.version>
 
         <!-- 本仓此前零测试（扫测 tests=0，4 个子模块无任何 surefire 报告），
              父链 z-boot-parent:1.0.21 的 DM 也不供 junit，故自留版本键。
