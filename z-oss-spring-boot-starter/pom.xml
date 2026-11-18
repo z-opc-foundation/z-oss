@@ -49,12 +49,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
-            <version>2.7.18</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
-            <version>2.7.18</version>
             <optional>true</optional>
         </dependency>
         <!-- 记日志只走 log4j2 一家, 别把外来日志家族挂 classpath 上 -->
@@ -65,7 +63,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>2.7.18</version>
             <scope>test</scope>
             <exclusions>
                 <!-- spring 容器默认日志那一族整条拔掉: 它带 logback-classic + log4j-to-slf4j,
@@ -80,7 +77,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
-            <version>2.7.18</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -12,7 +12,7 @@
     <parent>
         <groupId>io.github.yuku123</groupId>
         <artifactId>z-boot-parent</artifactId>
-        <version>1.2.3</version>
+        <version>1.2.4</version>
         <relativePath/>
     </parent>
 
@@ -100,7 +100,7 @@
         <log4j.version>2.26.1</log4j.version>
 
         <!-- 本仓此前零测试（扫测 tests=0，4 个子模块无任何 surefire 报告），
-             父链 z-boot-parent:1.0.21 的 DM 也不供 junit，故自留版本键。
+             父链 z-boot-parent:1.2.4 的 DM 也不供 junit，故自留版本键。
              取 5.10.2 与 z-kb 同版本，两仓都是 JDK8 目标。 -->
         <junit.version>5.10.2</junit.version>
     </properties>
@@ -147,7 +147,7 @@
             <dependency>
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
-                <version>8.5.11</version>
+                <version>${minio.version}</version>
             </dependency>
 
             <!-- z-boot-web-starter / z-boot-datasource-starter / z-util-core / aliyun-sdk-oss /
@@ -264,7 +264,7 @@
             <!-- 发布形状（README「消费模型」步骤 7）。z-oss 中央上那一版（1.0.3）发的是**自包含 raw pom**：
                  实测根 pom `z-oss-1.0.3.pom` 的 <parent> 计数 0、带 <properties> 与 <dependencyManagement>；
                  叶子 pom 带着 <parent>z-oss:1.0.3</parent> 且依赖**不写版本**，全靠根那份 DM 兜着。
-                 加了 <parent> 之后两件事同时成立：① 根 raw pom 会带着 z-boot-parent:1.0.19 出厂，
+                 加了 <parent> 之后两件事同时成立：① 根 raw pom 会带着 z-boot-parent:1.2.4 出厂，
                  对外面值就挂在 parent 链上（本仓以前的口径是自包含，不能这么漂）；② 这次把根 DM 里
                  与父链同值的条目都删了，扁平叶子拿不到版本可继承，只有 flatten 才能把继承来的面值写死。
                  ⇒ 常开 flatten oss + updatePomFile（不挂 central profile：不带 -P central 的 `mvn install`

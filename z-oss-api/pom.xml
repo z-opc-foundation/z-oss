@@ -60,7 +60,7 @@
              (经 z-oss-core 传递已有, sso 需显式). provided: 作为库不绑死宿主的认证实现. -->
         <!--
           ⚠ 2026-10-22 (TASK-20261021-041): **显式钉 1.0.5**。
-          原因: 父 pom z-boot-parent:1.1.0 把 <z-ctc.version> 钉在 **1.0.2**,
+          原因: 父 pom z-boot-parent:1.2.4 把 <z-ctc.version> 钉在 **1.0.2**,
           而 1.0.2 里的 SsoInterceptor 没有「回跳协议取自 sso.login-url」这段逻辑
           (那是 z-ctc 仓 6050844 引入的, 见 SsoInterceptor#loginUrlScheme)。
           ⇒ 落回默认分支 ⇒ 登录回跳地址的协议被降级成 http:// (公网实测:
