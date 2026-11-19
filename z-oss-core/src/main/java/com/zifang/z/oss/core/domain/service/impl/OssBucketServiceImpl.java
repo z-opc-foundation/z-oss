@@ -2,6 +2,7 @@ package com.zifang.z.oss.core.domain.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zifang.z.meta.api.annotation.BizMethod;
 import com.zifang.z.oss.common.enums.BucketAcl;
 import com.zifang.z.oss.common.exception.BucketException;
 import com.zifang.z.oss.core.domain.entity.OssBucket;
@@ -33,6 +34,7 @@ public class OssBucketServiceImpl extends ServiceImpl<OssBucketMapper, OssBucket
     }
 
     @Override
+    @BizMethod(name = "createBucket", module = "z-oss", description = "", operation = BizMethod.Operation.CREATE)
     public OssBucket createBucket(String name, Long userId) {
         validateBucketName(name);
 
@@ -75,6 +77,7 @@ public class OssBucketServiceImpl extends ServiceImpl<OssBucketMapper, OssBucket
     }
 
     @Override
+    @BizMethod(name = "deleteBucket", module = "z-oss", description = "", operation = BizMethod.Operation.DELETE)
     public void deleteBucket(String name, Long userId) {
         OssBucket bucket = validateBucket(name, userId);
 
@@ -93,12 +96,14 @@ public class OssBucketServiceImpl extends ServiceImpl<OssBucketMapper, OssBucket
     }
 
     @Override
+    @BizMethod(name = "listUserBuckets", module = "z-oss", description = "", operation = BizMethod.Operation.QUERY)
     public List<OssBucket> listUserBuckets(Long userId) {
         return this.list(new LambdaQueryWrapper<OssBucket>()
                 .eq(OssBucket::getUserId, userId));
     }
 
     @Override
+    @BizMethod(name = "validateBucket", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public OssBucket validateBucket(String name, Long userId) {
         OssBucket bucket = this.getOne(new LambdaQueryWrapper<OssBucket>()
                 .eq(OssBucket::getName, name)
@@ -110,6 +115,7 @@ public class OssBucketServiceImpl extends ServiceImpl<OssBucketMapper, OssBucket
     }
 
     @Override
+    @BizMethod(name = "updateBucket", module = "z-oss", description = "", operation = BizMethod.Operation.UPDATE)
     public OssBucket updateBucket(String name, Long userId, String acl, String region, String policy) {
         OssBucket bucket = validateBucket(name, userId);
 
@@ -135,6 +141,7 @@ public class OssBucketServiceImpl extends ServiceImpl<OssBucketMapper, OssBucket
     }
 
     @Override
+    @BizMethod(name = "getBucketStats", module = "z-oss", description = "", operation = BizMethod.Operation.QUERY)
     public Map<String, Object> getBucketStats(String name, Long userId) {
         OssBucket bucket = validateBucket(name, userId);
         Map<String, Object> stats = new HashMap<>();
@@ -158,3 +165,6 @@ public class OssBucketServiceImpl extends ServiceImpl<OssBucketMapper, OssBucket
         }
     }
 }
+
+
+

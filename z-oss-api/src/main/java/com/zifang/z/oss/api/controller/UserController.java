@@ -2,6 +2,9 @@ package com.zifang.z.oss.api.controller;
 
 import com.zifang.util.core.meta.Result;
 import com.zifang.util.core.meta.ResultCode;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import com.zifang.z.oss.api.dto.UserLoginRequest;
 import com.zifang.z.oss.api.dto.UserRegisterRequest;
 import com.zifang.z.oss.api.vo.ChangePasswordResponseVO;
@@ -45,7 +48,8 @@ public class UserController {
      * @return 新注册用户的 VO
      */
     @PostMapping("/register")
-    public Result<UserVO> register(@RequestBody UserRegisterRequest request) {
+    @BizApi(summary = "用户注册,使用用户名与密码创建新账号,系统会自动生成 accessKey/secretKey", description = "用户注册,使用用户名与密码创建新账号,系统会自动生成 accessKey/secretKey.", tags = { "z-oss" })
+    public Result<UserVO> register(@RequestBody @BizParam(name = "request", type = BizField.FieldType.STRING, description = "注册请求参数(用户名、密码)", position = BizParam.Position.BODY) UserRegisterRequest request) {
         OssUser user = userService.register(request.getUsername(), request.getPassword());
         return Result.<UserVO>success(convertUser(user));
     }
@@ -57,7 +61,8 @@ public class UserController {
      * @return 登录响应 VO(token、用户 ID、用户名)
      */
     @PostMapping("/login")
-    public Result<LoginResponseVO> login(@RequestBody UserLoginRequest request) {
+    @BizApi(summary = "用户登录,校验成功后以 accessKey:secretKey 形式签发 token", description = "用户登录,校验成功后以 accessKey:secretKey 形式签发 token.", tags = { "z-oss" })
+    public Result<LoginResponseVO> login(@RequestBody @BizParam(name = "request", type = BizField.FieldType.STRING, description = "登录请求参数(用户名、密码)", position = BizParam.Position.BODY) UserLoginRequest request) {
         OssUser user = userService.login(request.getUsername(), request.getPassword());
         LoginResponseVO vo = new LoginResponseVO();
         vo.setToken(user.getAccessKey() + ":" + user.getSecretKey());
@@ -73,7 +78,8 @@ public class UserController {
      * @return 用户 VO 的封装结果
      */
     @GetMapping("/info")
-    public Result<UserVO> getUserInfo(@RequestHeader("X-Zoss-Access-Key") String accessKey) {
+    @BizApi(summary = "根据 accessKey 查询当前用户信息,用户不存在时返回 404", description = "根据 accessKey 查询当前用户信息,用户不存在时返回 404.", tags = { "z-oss" })
+    public Result<UserVO> getUserInfo(@RequestHeader("X-Zoss-Access-Key") @BizParam(name = "X-Zoss-Access-Key", type = BizField.FieldType.STRING, description = "用户 accessKey(请求头 X-Zoss-Access-Key)", position = BizParam.Position.HEADER) String accessKey) {
         OssUser user = userService.getByAccessKey(accessKey);
         if (user == null) {
             return Result.<UserVO>fail("资源不存在").code(ResultCode.NOT_FOUND.getCode());
@@ -89,8 +95,9 @@ public class UserController {
      * @return 更新后的用户 VO
      */
     @PutMapping("/info")
-    public Result<UserVO> updateUserInfo(@RequestHeader("X-Zoss-Access-Key") String accessKey,
-                                         @RequestBody UserRegisterRequest request) {
+    @BizApi(summary = "更新当前用户的用户名", description = "更新当前用户的用户名.", tags = { "z-oss" })
+    public Result<UserVO> updateUserInfo(@RequestHeader("X-Zoss-Access-Key") @BizParam(name = "X-Zoss-Access-Key", type = BizField.FieldType.STRING, description = "用户 accessKey(请求头 X-Zoss-Access-Key)", position = BizParam.Position.HEADER) String accessKey,
+                                         @RequestBody @BizParam(name = "request", type = BizField.FieldType.STRING, description = "更新请求参数(用户名)", position = BizParam.Position.BODY) UserRegisterRequest request) {
         OssUser user = userService.updateUser(accessKey, request.getUsername());
         return Result.<UserVO>success(convertUser(user));
     }
@@ -102,7 +109,8 @@ public class UserController {
      * @return 重置后的用户 VO(含新的 accessKey/secretKey)
      */
     @PostMapping("/reset-key")
-    public Result<UserVO> resetKeys(@RequestHeader("X-Zoss-Access-Key") String accessKey) {
+    @BizApi(summary = "重置当前用户的 accessKey/secretKey", description = "重置当前用户的 accessKey/secretKey.", tags = { "z-oss" })
+    public Result<UserVO> resetKeys(@RequestHeader("X-Zoss-Access-Key") @BizParam(name = "X-Zoss-Access-Key", type = BizField.FieldType.STRING, description = "用户 accessKey(请求头 X-Zoss-Access-Key)", position = BizParam.Position.HEADER) String accessKey) {
         OssUser user = userService.resetAccessKey(accessKey);
         return Result.<UserVO>success(convertUser(user));
     }
@@ -115,8 +123,9 @@ public class UserController {
      * @return 密码修改结果响应 VO
      */
     @PostMapping("/password")
-    public Result<ChangePasswordResponseVO> changePassword(@RequestHeader("X-Zoss-Access-Key") String accessKey,
-                                                           @RequestBody Map<String, String> passwordMap) {
+    @BizApi(summary = "修改当前用户的密码,需要提供旧密码与新密码", description = "修改当前用户的密码,需要提供旧密码与新密码.", tags = { "z-oss" })
+    public Result<ChangePasswordResponseVO> changePassword(@RequestHeader("X-Zoss-Access-Key") @BizParam(name = "X-Zoss-Access-Key", type = BizField.FieldType.STRING, description = "用户 accessKey(请求头 X-Zoss-Access-Key)", position = BizParam.Position.HEADER) String accessKey,
+                                                           @RequestBody @BizParam(name = "passwordMap", type = BizField.FieldType.JSON, description = "包含 oldPassword 与 newPassword 的请求体", position = BizParam.Position.BODY) Map<String, String> passwordMap) {
         String oldPassword = passwordMap.get("oldPassword");
         String newPassword = passwordMap.get("newPassword");
         userService.changePassword(accessKey, oldPassword, newPassword);
@@ -143,3 +152,4 @@ public class UserController {
         return vo;
     }
 }
+

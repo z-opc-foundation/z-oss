@@ -2,6 +2,9 @@ package com.zifang.z.oss.api.controller;
 
 import com.zifang.util.core.meta.Result;
 import com.zifang.util.core.meta.ResultCode;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import com.zifang.z.oss.api.config.AuthenticationInterceptor;
 import com.zifang.z.oss.api.vo.BucketStatsVO;
 import com.zifang.z.oss.api.vo.ObjectMetadataVO;
@@ -13,6 +16,7 @@ import com.zifang.z.oss.core.domain.entity.OssUser;
 import com.zifang.z.oss.core.domain.service.IOssObjectService;
 import com.zifang.z.oss.core.provider.OssPartInfo;
 import com.zifang.z.oss.core.util.ZOssSignature;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -22,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -75,9 +78,11 @@ public class ObjectController {
      * 上传一个对象到指定存储桶,内容为空时使用 application/octet-stream 作为默认 Content-Type.
      */
     @PostMapping("/object")
-    public Result<?> uploadObject(@RequestParam String bucketName,
-                                  @RequestParam String objectKey,
-                                  @RequestParam("file") MultipartFile file,
+    @BizApi(summary = "RESTful alias: POST /api/v1/object?bucketName=&objectKey=", description = "RESTful alias: POST /api/v1/object?bucketName=&objectKey= 上传一个对象到指定存储桶,内容为空时使用 application/octet-stream 作为默认 Content-Type.", tags = { "z-oss" })
+    public Result<?> uploadObject(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                  @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
+                                  @RequestParam("file")
+                                  @BizParam(name = "file", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) MultipartFile file,
                                   HttpServletRequest httpRequest) throws IOException {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
 
@@ -104,8 +109,9 @@ public class ObjectController {
      * 请求线程之外完成传输,大文件不占住业务线程。
      */
     @GetMapping("/object")
-    public ResponseEntity<StreamingResponseBody> downloadObject(@RequestParam String bucketName,
-                                                                 @RequestParam String objectKey,
+    @BizApi(summary = "RESTful alias: GET /api/v1/object?bucketName=&objectKey=", description = "RESTful alias: GET /api/v1/object?bucketName=&objectKey= 下载指定对象的二进制内容,并附带 Content-Type、Content-Length 与 ETag 等响应头信息. 原来这里是 Result.success(byte[]) —— 字节被塞进统一响应包装后交给 Jackson 序列化,客户端拿到的是一段 JSON 里的 base64/数字数组而不是文件本身, 且响应头被 set 在一个随后就被丢弃的 HttpHeaders 上,等于没设。 这里改成直接往 Servlet 输出流写,配 StreamingResponseBody 让容器在 请求线程之外完成传输,大文件不占住业务线程。", tags = { "z-oss" })
+    public ResponseEntity<StreamingResponseBody> downloadObject(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                                                 @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
                                                                  HttpServletRequest httpRequest)
             throws IOException {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
@@ -119,11 +125,13 @@ public class ObjectController {
      * 签出来的 URL 指向这里。签名本身就是凭证,所以走的是签名校验而非 AK/SK 头。
      */
     @GetMapping("/object/download")
-    public ResponseEntity<StreamingResponseBody> downloadObjectPresigned(@RequestParam String bucketName,
-                                                                         @RequestParam String objectKey,
-                                                                         @RequestParam long expires,
-                                                                         @RequestParam("accessKeyId") String accessKeyId,
-                                                                         @RequestParam String signature,
+    @BizApi(summary = "RESTful alias: GET /api/v1/object/download?bucketName=&objectKey=&expires=&accessKeyId=&signature=", description = "RESTful alias: GET /api/v1/object/download?bucketName=&objectKey=&expires=&accessKeyId=&signature= 预签名下载入口 —— com.zifang.z.oss.core.provider.impl.LocalOssProvider 签出来的 URL 指向这里。签名本身就是凭证,所以走的是签名校验而非 AK/SK 头。", tags = { "z-oss" })
+    public ResponseEntity<StreamingResponseBody> downloadObjectPresigned(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                                                         @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
+                                                                         @RequestParam @BizParam(name = "expires", type = BizField.FieldType.INTEGER, description = "", position = BizParam.Position.QUERY) long expires,
+                                                                         @RequestParam("accessKeyId")
+                                                                         @BizParam(name = "accessKeyId", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String accessKeyId,
+                                                                         @RequestParam @BizParam(name = "signature", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String signature,
                                                                          HttpServletRequest httpRequest)
             throws IOException {
         if (!ZOssSignature.verify(accessKeyId, bucketName, objectKey, expires, signature)) {
@@ -237,8 +245,9 @@ public class ObjectController {
      * 删除指定存储桶中的某个对象.
      */
     @DeleteMapping("/object")
-    public Result<?> deleteObject(@RequestParam String bucketName,
-                                  @RequestParam String objectKey,
+    @BizApi(summary = "RESTful alias: DELETE /api/v1/object?bucketName=&objectKey=", description = "RESTful alias: DELETE /api/v1/object?bucketName=&objectKey= 删除指定存储桶中的某个对象.", tags = { "z-oss" })
+    public Result<?> deleteObject(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                  @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
                                   HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         objectService.deleteObject(bucketName, objectKey, user.getId());
@@ -250,8 +259,10 @@ public class ObjectController {
      * 列出指定存储桶下的对象,可选按前缀过滤.
      */
     @GetMapping("/object/list")
-    public Result<List<ObjectVO>> listObjects(@RequestParam String bucketName,
-                                              @RequestParam(value = "prefix", required = false) String prefix,
+    @BizApi(summary = "RESTful alias: GET /api/v1/object/list?bucketName=&prefix=", description = "RESTful alias: GET /api/v1/object/list?bucketName=&prefix= 列出指定存储桶下的对象,可选按前缀过滤.", tags = { "z-oss" })
+    public Result<List<ObjectVO>> listObjects(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                              @RequestParam(value = "prefix", required = false)
+                                              @BizParam(name = "prefix", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String prefix,
                                               HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         List<OssObject> objects = objectService.listObjects(bucketName, prefix, user.getId());
@@ -263,8 +274,9 @@ public class ObjectController {
      * 在指定存储桶下创建一个空文件夹对象.
      */
     @PostMapping("/folder")
-    public Result<?> createFolder(@RequestParam String bucketName,
-                                  @RequestParam String folderKey,
+    @BizApi(summary = "RESTful alias: POST /api/v1/folder?bucketName=&folderKey=", description = "RESTful alias: POST /api/v1/folder?bucketName=&folderKey= 在指定存储桶下创建一个空文件夹对象.", tags = { "z-oss" })
+    public Result<?> createFolder(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                  @RequestParam @BizParam(name = "folderKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String folderKey,
                                   HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         OssObject object = objectService.createFolder(bucketName, folderKey, user.getId());
@@ -287,8 +299,9 @@ public class ObjectController {
      * 查询指定对象的元数据(HEAD),资源不存在时返回 404.
      */
     @RequestMapping(value = "/object/meta", method = RequestMethod.HEAD)
-    public Result<ObjectMetadataVO> headObject(@RequestParam String bucketName,
-                                               @RequestParam String objectKey,
+    @BizApi(summary = "RESTful alias: HEAD /api/v1/object/meta?bucketName=&objectKey=", description = "RESTful alias: HEAD /api/v1/object/meta?bucketName=&objectKey= 查询指定对象的元数据(HEAD),资源不存在时返回 404.", tags = { "z-oss" })
+    public Result<ObjectMetadataVO> headObject(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                               @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
                                                HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         OssObject object = objectService.getObject(bucketName, objectKey, user.getId());
@@ -312,9 +325,10 @@ public class ObjectController {
      * 将对象复制到另一个存储桶(或同一存储桶下的其他 Key).
      */
     @PostMapping("/object/copy")
-    public Result<ObjectVO> copyObject(@RequestParam String bucketName,
-                                       @RequestParam String objectKey,
-                                       @RequestBody Map<String, String> copyRequest,
+    @BizApi(summary = "RESTful alias: POST /api/v1/object/copy?bucketName=&objectKey=", description = "RESTful alias: POST /api/v1/object/copy?bucketName=&objectKey= 将对象复制到另一个存储桶(或同一存储桶下的其他 Key).", tags = { "z-oss" })
+    public Result<ObjectVO> copyObject(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                       @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
+                                       @RequestBody @BizParam(name = "copyRequest", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, String> copyRequest,
                                        HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         String destBucketName = copyRequest.get("destBucketName");
@@ -330,8 +344,9 @@ public class ObjectController {
      * 批量删除指定存储桶下的若干对象.
      */
     @PostMapping("/object/batch-delete")
-    public Result<?> batchDeleteObjects(@RequestParam String bucketName,
-                                        @RequestBody List<String> objectKeys,
+    @BizApi(summary = "RESTful alias: POST /api/v1/object/batch-delete?bucketName=", description = "RESTful alias: POST /api/v1/object/batch-delete?bucketName= 批量删除指定存储桶下的若干对象.", tags = { "z-oss" })
+    public Result<?> batchDeleteObjects(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                        @RequestBody @BizParam(name = "objectKeys", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) List<String> objectKeys,
                                         HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         objectService.batchDeleteObjects(bucketName, objectKeys, user.getId());
@@ -344,9 +359,11 @@ public class ObjectController {
      * 生成对象的预签名下载 URL,默认有效期为 3600 秒.
      */
     @GetMapping("/object/url")
-    public Result<PresignedUrlVO> getObjectUrl(@RequestParam String bucketName,
-                                               @RequestParam String objectKey,
-                                               @RequestParam(value = "expires", defaultValue = "3600") Integer expires,
+    @BizApi(summary = "RESTful alias: GET /api/v1/object/url?bucketName=&objectKey=&expires=", description = "RESTful alias: GET /api/v1/object/url?bucketName=&objectKey=&expires= 生成对象的预签名下载 URL,默认有效期为 3600 秒.", tags = { "z-oss" })
+    public Result<PresignedUrlVO> getObjectUrl(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                               @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
+                                               @RequestParam(value = "expires", defaultValue = "3600")
+                                               @BizParam(name = "expires", type = BizField.FieldType.INTEGER, description = "", position = BizParam.Position.QUERY) Integer expires,
                                                HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         String url = objectService.generatePresignedUrl(bucketName, objectKey, expires, user.getId());
@@ -365,7 +382,8 @@ public class ObjectController {
      * 这里曾读 {@code "totalObjects"}(map 里只有 {@code "objectCount"})⇒ get 出 null ⇒ NPE ⇒ 500.
      */
     @GetMapping("/bucket/stats")
-    public Result<BucketStatsVO> getBucketStats(@RequestParam String bucketName,
+    @BizApi(summary = "RESTful alias: GET /api/v1/bucket/stats?bucketName=", description = "RESTful alias: GET /api/v1/bucket/stats?bucketName= 查询指定存储桶的统计信息(对象总数、占用空间、当前 provider). bug-fix: key 必须跟 OssObjectServiceImpl#getBucketStats 放进 map 的名字一致 —— 这里曾读 \"totalObjects\"(map 里只有 \"objectCount\")⇒ get 出 null ⇒ NPE ⇒ 500.", tags = { "z-oss" })
+    public Result<BucketStatsVO> getBucketStats(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
                                                 HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         Map<String, Object> stats = objectService.getBucketStats(bucketName, user.getId());
@@ -384,9 +402,11 @@ public class ObjectController {
      * @return uploadId
      */
     @PostMapping("/object/multipart/init")
-    public Result<Map<String, Object>> initiateMultipart(@RequestParam String bucketName,
-                                                         @RequestParam String objectKey,
-                                                         @RequestParam(value = "contentType", required = false) String contentType,
+    @BizApi(summary = "开启分片上传。大文件走这条路：单次请求只传一片,失败重传也只重传那一片", description = "开启分片上传。大文件走这条路：单次请求只传一片,失败重传也只重传那一片。", tags = { "z-oss" })
+    public Result<Map<String, Object>> initiateMultipart(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                                         @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
+                                                         @RequestParam(value = "contentType", required = false)
+                                                         @BizParam(name = "contentType", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String contentType,
                                                          HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         String uploadId = objectService.initiateMultipart(bucketName, objectKey, contentType, user.getId());
@@ -403,12 +423,15 @@ public class ObjectController {
      * @return 分片的 etag 与大小,归并时要靠它校验
      */
     @PostMapping("/object/multipart/part")
-    public Result<OssPartInfo> uploadPart(@RequestParam String bucketName,
-                                          @RequestParam String objectKey,
-                                          @RequestParam String uploadId,
-                                          @RequestParam int partNumber,
-                                          @RequestParam("file") MultipartFile file,
-                                          @RequestParam(value = "contentType", required = false) String contentType,
+    @BizApi(summary = "上传一个分片。partNumber 从 1 开始", description = "上传一个分片。partNumber 从 1 开始。", tags = { "z-oss" })
+    public Result<OssPartInfo> uploadPart(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                          @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
+                                          @RequestParam @BizParam(name = "uploadId", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String uploadId,
+                                          @RequestParam @BizParam(name = "partNumber", type = BizField.FieldType.INTEGER, description = "", position = BizParam.Position.QUERY) int partNumber,
+                                          @RequestParam("file")
+                                          @BizParam(name = "file", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) MultipartFile file,
+                                          @RequestParam(value = "contentType", required = false)
+                                          @BizParam(name = "contentType", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String contentType,
                                           HttpServletRequest httpRequest) throws IOException {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         String ct = contentType != null ? contentType : file.getContentType();
@@ -423,10 +446,11 @@ public class ObjectController {
      * @param parts 形如 {@code [{"partNumber":1,"etag":"..."}, ...]},可乱序
      */
     @PostMapping("/object/multipart/complete")
-    public Result<ObjectVO> completeMultipart(@RequestParam String bucketName,
-                                               @RequestParam String objectKey,
-                                               @RequestParam String uploadId,
-                                               @RequestBody List<Map<String, Object>> parts,
+    @BizApi(summary = "归并分片成最终对象", description = "归并分片成最终对象。", tags = { "z-oss" })
+    public Result<ObjectVO> completeMultipart(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                               @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
+                                               @RequestParam @BizParam(name = "uploadId", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String uploadId,
+                                               @RequestBody @BizParam(name = "parts", type = BizField.FieldType.JSON, description = "形如 {@code [{\"partNumber\":1,\"etag\":\"...\"}, ...]},可乱序", position = BizParam.Position.BODY) List<Map<String, Object>> parts,
                                                HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         List<OssPartInfo> infos = new java.util.ArrayList<>();
@@ -453,9 +477,10 @@ public class ObjectController {
      * 放弃分片上传。客户端断线不调它是已上传分片占空间的常见泄漏。
      */
     @PostMapping("/object/multipart/abort")
-    public Result<?> abortMultipart(@RequestParam String bucketName,
-                                    @RequestParam String objectKey,
-                                    @RequestParam String uploadId,
+    @BizApi(summary = "放弃分片上传。客户端断线不调它是已上传分片占空间的常见泄漏", description = "放弃分片上传。客户端断线不调它是已上传分片占空间的常见泄漏。", tags = { "z-oss" })
+    public Result<?> abortMultipart(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                    @RequestParam @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String objectKey,
+                                    @RequestParam @BizParam(name = "uploadId", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String uploadId,
                                     HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         objectService.abortMultipart(bucketName, objectKey, uploadId, user.getId());
@@ -482,3 +507,4 @@ public class ObjectController {
         return vo;
     }
 }
+

@@ -1,35 +1,46 @@
 package com.zifang.z.oss.core.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizModel;
 
 import java.time.LocalDateTime;
 
 /**
  * 存储桶实体
  */
+@BizModel(name = "存储桶实体", module = "z-oss", description = "存储桶实体")
 @TableName("oss_bucket")
 public class OssBucket {
 
     @TableId(type = IdType.AUTO)
+    @BizField(name = "主键", type = BizField.FieldType.INTEGER)
     private Long id;
 
+    @BizField(name = "桶名称", type = BizField.FieldType.STRING)
     private String name;
 
+    @BizField(name = "所属用户ID", type = BizField.FieldType.INTEGER)
     private Long userId;
 
+    @BizField(name = "区域", type = BizField.FieldType.STRING)
     private String region;
 
+    @BizField(name = "桶策略（JSON）", type = BizField.FieldType.STRING)
     private String policy;
 
+    @BizField(name = "访问控制", type = BizField.FieldType.STRING)
     private String acl;
 
     @TableField(fill = FieldFill.INSERT)
+    @BizField(name = "创建时间", type = BizField.FieldType.DATETIME)
     private LocalDateTime createTime;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
+    @BizField(name = "更新时间", type = BizField.FieldType.DATETIME)
     private LocalDateTime updateTime;
 
-    @TableLogic
+    @TableLogic @BizField(name = "逻辑删除", type = BizField.FieldType.INTEGER)
     private Integer deleted;
 
     public Long getId() {
@@ -104,3 +115,4 @@ public class OssBucket {
         this.deleted = deleted;
     }
 }
+

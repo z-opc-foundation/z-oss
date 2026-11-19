@@ -70,6 +70,7 @@
     </modules>
 
     <properties>
+        <z-meta.version>1.0.2</z-meta.version>
         <!-- 版本口径由 parent 下发。2026-09-29 迁移删掉的键，逐条按**坐标**判"供不供"
              （parent_preflight 的第 2/5 节；键名对不上不等于坐标没人管）：
                maven.compiler.source/target=8、project.build.sourceEncoding=UTF-8、compile.version=8
@@ -204,6 +205,11 @@
                    迁移前反而是 logback 与 log4j-slf4j-impl 两条 slf4j binding 同时躺在类路径上，
                    这 3 条消失等于把那条重复 binding 摘掉 ⇒ **不补任何依赖**。
                    jul-to-slf4j 1.7.36 不走 starter-logging 那条路，两侧都在。 -->
+            <dependency>
+                <groupId>io.github.yuku123</groupId>
+                <artifactId>z-meta-api</artifactId>
+                <version>${z-meta.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

@@ -1,6 +1,9 @@
 package com.zifang.z.oss.api.controller;
 
 import com.zifang.util.core.meta.Result;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import com.zifang.z.oss.api.config.AuthenticationInterceptor;
 import com.zifang.z.oss.api.dto.CreateBucketRequest;
 import com.zifang.z.oss.api.dto.UpdateBucketRequest;
@@ -10,10 +13,10 @@ import com.zifang.z.oss.api.vo.BucketVO;
 import com.zifang.z.oss.core.domain.entity.OssBucket;
 import com.zifang.z.oss.core.domain.entity.OssUser;
 import com.zifang.z.oss.core.domain.service.IOssBucketService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,7 +60,8 @@ public class BucketController {
      * @return 新建存储桶 VO 的封装结果
      */
     @PostMapping
-    public Result<BucketVO> createBucket(@RequestBody CreateBucketRequest request,
+    @BizApi(summary = "创建指定名称的存储桶,归属于当前登录用户", description = "创建指定名称的存储桶,归属于当前登录用户.", tags = { "z-oss" })
+    public Result<BucketVO> createBucket(@RequestBody @BizParam(name = "request", type = BizField.FieldType.STRING, description = "创建存储桶请求参数(含 bucket 名称)", position = BizParam.Position.BODY) CreateBucketRequest request,
                                          HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         OssBucket bucket = bucketService.createBucket(request.getName(), user.getId());
@@ -77,7 +81,8 @@ public class BucketController {
      * 删除指定名称的存储桶,需校验归属权.
      */
     @DeleteMapping
-    public Result<Object> deleteBucket(@RequestParam String bucketName,
+    @BizApi(summary = "RESTful alias: DELETE /api/v1/bucket?bucketName=", description = "RESTful alias: DELETE /api/v1/bucket?bucketName= 删除指定名称的存储桶,需校验归属权.", tags = { "z-oss" })
+    public Result<Object> deleteBucket(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
                                        HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         bucketService.deleteBucket(bucketName, user.getId());
@@ -100,7 +105,8 @@ public class BucketController {
      * @return 列表或详情 (运行时类型决定 JSON 结构)
      */
     @GetMapping
-    public Result<?> listOrGetBucket(@RequestParam(value = "bucketName", required = false) String bucketName,
+    @BizApi(summary = "统一入口: GET /api/v1/bucket[?bucketName=]", description = "统一入口: GET /api/v1/bucket[?bucketName=] 合并之前的两个裸 @GetMapping (listBuckets + getBucket) —— 它们共享同一 路径会触发 Spring MVC Ambiguous mapping. 统一通过 bucketName 参数分支: 不提供 bucketName → 列出当前用户全部存储桶 提供 bucketName → 获取指定存储桶详情 (RESTful alias)", tags = { "z-oss" })
+    public Result<?> listOrGetBucket(@RequestParam(value = "bucketName", required = false) @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "可选; 提供时按名称查询", position = BizParam.Position.QUERY) String bucketName,
                                      HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         if (bucketName == null || bucketName.isEmpty()) {
@@ -119,8 +125,9 @@ public class BucketController {
      * 更新指定存储桶的 ACL、地域及策略等信息.
      */
     @PutMapping
-    public Result<BucketVO> updateBucket(@RequestParam String bucketName,
-                                         @RequestBody UpdateBucketRequest request,
+    @BizApi(summary = "RESTful alias: PUT /api/v1/bucket?bucketName=", description = "RESTful alias: PUT /api/v1/bucket?bucketName= 更新指定存储桶的 ACL、地域及策略等信息.", tags = { "z-oss" })
+    public Result<BucketVO> updateBucket(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                         @RequestBody @BizParam(name = "request", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.BODY) UpdateBucketRequest request,
                                          HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         OssBucket bucket = bucketService.updateBucket(bucketName, user.getId(), request.getAcl(),
@@ -134,7 +141,8 @@ public class BucketController {
      * 查询指定存储桶的访问控制列表(ACL).
      */
     @GetMapping("/acl")
-    public Result<BucketAclVO> getBucketAcl(@RequestParam String bucketName,
+    @BizApi(summary = "RESTful alias: GET /api/v1/bucket/acl?bucketName=", description = "RESTful alias: GET /api/v1/bucket/acl?bucketName= 查询指定存储桶的访问控制列表(ACL).", tags = { "z-oss" })
+    public Result<BucketAclVO> getBucketAcl(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
                                             HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         OssBucket bucket = bucketService.validateBucket(bucketName, user.getId());
@@ -149,8 +157,9 @@ public class BucketController {
      * 设置指定存储桶的访问控制列表(ACL).
      */
     @PutMapping("/acl")
-    public Result<BucketVO> setBucketAcl(@RequestParam String bucketName,
-                                         @RequestBody Map<String, String> aclMap,
+    @BizApi(summary = "RESTful alias: PUT /api/v1/bucket/acl?bucketName=", description = "RESTful alias: PUT /api/v1/bucket/acl?bucketName= 设置指定存储桶的访问控制列表(ACL).", tags = { "z-oss" })
+    public Result<BucketVO> setBucketAcl(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                         @RequestBody @BizParam(name = "aclMap", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, String> aclMap,
                                          HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         OssBucket bucket = bucketService.updateBucket(bucketName, user.getId(), aclMap.get("acl"),
@@ -164,7 +173,8 @@ public class BucketController {
      * 查询指定存储桶的访问策略.
      */
     @GetMapping("/policy")
-    public Result<BucketPolicyVO> getBucketPolicy(@RequestParam String bucketName,
+    @BizApi(summary = "RESTful alias: GET /api/v1/bucket/policy?bucketName=", description = "RESTful alias: GET /api/v1/bucket/policy?bucketName= 查询指定存储桶的访问策略.", tags = { "z-oss" })
+    public Result<BucketPolicyVO> getBucketPolicy(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
                                                   HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         OssBucket bucket = bucketService.validateBucket(bucketName, user.getId());
@@ -179,8 +189,9 @@ public class BucketController {
      * 设置指定存储桶的访问策略.
      */
     @PutMapping("/policy")
-    public Result<BucketVO> setBucketPolicy(@RequestParam String bucketName,
-                                            @RequestBody Map<String, String> policyMap,
+    @BizApi(summary = "RESTful alias: PUT /api/v1/bucket/policy?bucketName=", description = "RESTful alias: PUT /api/v1/bucket/policy?bucketName= 设置指定存储桶的访问策略.", tags = { "z-oss" })
+    public Result<BucketVO> setBucketPolicy(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
+                                            @RequestBody @BizParam(name = "policyMap", type = BizField.FieldType.JSON, description = "", position = BizParam.Position.BODY) Map<String, String> policyMap,
                                             HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         OssBucket bucket = bucketService.updateBucket(bucketName, user.getId(), null,
@@ -194,7 +205,8 @@ public class BucketController {
      * 删除指定存储桶的访问策略.
      */
     @DeleteMapping("/policy")
-    public Result<Object> deleteBucketPolicy(@RequestParam String bucketName,
+    @BizApi(summary = "RESTful alias: DELETE /api/v1/bucket/policy?bucketName=", description = "RESTful alias: DELETE /api/v1/bucket/policy?bucketName= 删除指定存储桶的访问策略.", tags = { "z-oss" })
+    public Result<Object> deleteBucketPolicy(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
                                              HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         bucketService.updateBucket(bucketName, user.getId(), null, null, null);
@@ -207,7 +219,8 @@ public class BucketController {
      * 检查指定存储桶是否存在且归属当前用户.
      */
     @RequestMapping(method = RequestMethod.HEAD)
-    public Result<Object> headBucket(@RequestParam String bucketName,
+    @BizApi(summary = "RESTful alias: HEAD /api/v1/bucket?bucketName=", description = "RESTful alias: HEAD /api/v1/bucket?bucketName= 检查指定存储桶是否存在且归属当前用户.", tags = { "z-oss" })
+    public Result<Object> headBucket(@RequestParam @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String bucketName,
                                      HttpServletRequest httpRequest) {
         OssUser user = (OssUser) httpRequest.getAttribute(AuthenticationInterceptor.ATTR_USER);
         bucketService.validateBucket(bucketName, user.getId());
@@ -230,3 +243,4 @@ public class BucketController {
         return vo;
     }
 }
+

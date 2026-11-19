@@ -2,6 +2,8 @@ package com.zifang.z.oss.core.domain.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zifang.util.core.lang.RandomUtil;
+import com.zifang.z.meta.api.annotation.BizMethod;
 import com.zifang.z.oss.common.exception.OssException;
 import com.zifang.z.oss.core.domain.entity.OssUser;
 import com.zifang.z.oss.core.domain.mapper.OssUserMapper;
@@ -9,7 +11,6 @@ import com.zifang.z.oss.core.domain.service.IOssUserService;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
-import com.zifang.util.core.lang.RandomUtil;
 
 /**
  * 用户服务实现
@@ -18,12 +19,14 @@ import com.zifang.util.core.lang.RandomUtil;
 public class OssUserServiceImpl extends ServiceImpl<OssUserMapper, OssUser> implements IOssUserService {
 
     @Override
+    @BizMethod(name = "getByAccessKey", module = "z-oss", description = "", operation = BizMethod.Operation.QUERY)
     public OssUser getByAccessKey(String accessKey) {
         return this.getOne(new LambdaQueryWrapper<OssUser>()
                 .eq(OssUser::getAccessKey, accessKey));
     }
 
     @Override
+    @BizMethod(name = "verifyCredentials", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public boolean verifyCredentials(String accessKey, String secretKey) {
         OssUser user = getByAccessKey(accessKey);
         if (user == null) {
@@ -33,6 +36,7 @@ public class OssUserServiceImpl extends ServiceImpl<OssUserMapper, OssUser> impl
     }
 
     @Override
+    @BizMethod(name = "createUser", module = "z-oss", description = "", operation = BizMethod.Operation.CREATE)
     public OssUser createUser(String username, String secretKey) {
         OssUser user = new OssUser();
         user.setUsername(username);
@@ -44,6 +48,7 @@ public class OssUserServiceImpl extends ServiceImpl<OssUserMapper, OssUser> impl
     }
 
     @Override
+    @BizMethod(name = "register", module = "z-oss", description = "", operation = BizMethod.Operation.CREATE)
     public OssUser register(String username, String password) {
         // 检查用户名是否已存在
         OssUser existUser = this.getOne(new LambdaQueryWrapper<OssUser>()
@@ -63,6 +68,7 @@ public class OssUserServiceImpl extends ServiceImpl<OssUserMapper, OssUser> impl
     }
 
     @Override
+    @BizMethod(name = "login", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public OssUser login(String username, String password) {
         // 根据用户名查询用户
         OssUser user = this.getOne(new LambdaQueryWrapper<OssUser>()
@@ -85,6 +91,7 @@ public class OssUserServiceImpl extends ServiceImpl<OssUserMapper, OssUser> impl
     }
 
     @Override
+    @BizMethod(name = "updateUser", module = "z-oss", description = "", operation = BizMethod.Operation.UPDATE)
     public OssUser updateUser(String accessKey, String username) {
         OssUser user = getByAccessKey(accessKey);
         if (user == null) {
@@ -106,6 +113,7 @@ public class OssUserServiceImpl extends ServiceImpl<OssUserMapper, OssUser> impl
     }
 
     @Override
+    @BizMethod(name = "resetAccessKey", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public OssUser resetAccessKey(String accessKey) {
         OssUser user = getByAccessKey(accessKey);
         if (user == null) {
@@ -120,6 +128,7 @@ public class OssUserServiceImpl extends ServiceImpl<OssUserMapper, OssUser> impl
     }
 
     @Override
+    @BizMethod(name = "changePassword", module = "z-oss", description = "", operation = BizMethod.Operation.UPDATE)
     public void changePassword(String accessKey, String oldPassword, String newPassword) {
         OssUser user = getByAccessKey(accessKey);
         if (user == null) {
@@ -144,3 +153,4 @@ public class OssUserServiceImpl extends ServiceImpl<OssUserMapper, OssUser> impl
         return RandomUtil.uuidCompact();
     }
 }
+

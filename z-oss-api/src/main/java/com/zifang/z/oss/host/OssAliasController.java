@@ -1,17 +1,20 @@
 package com.zifang.z.oss.host;
 
 import com.zifang.util.core.meta.Result;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import com.zifang.z.oss.api.dto.OssBucketDetailResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.sql.DataSource;
 
 /**
  * 前端别名控制器 (2026-10-03 自 z-opc main-starter 的 E2EAliasController OSS 段平移):
@@ -41,6 +44,7 @@ public class OssAliasController {
      * <p>{@code GET /api/oss/list}</p>
      */
     @GetMapping("/api/oss/list")
+    @BizApi(summary = "列出 buckets (alias for /api/v1/bucket)", description = "列出 buckets (alias for /api/v1/bucket). GET /api/oss/list", tags = { "z-oss" })
     public Result<List<Map<String, Object>>> ossListBuckets() {
         return Result.success(queryOssBuckets());
     }
@@ -50,7 +54,8 @@ public class OssAliasController {
      * <p>{@code GET /api/oss/{bucketName}}</p>
      */
     @GetMapping("/api/oss/{bucketName}")
-    public Result<OssBucketDetailResponse> ossBucketDetail(@PathVariable String bucketName) {
+    @BizApi(summary = "单个 bucket 详情 (构造壳)", description = "单个 bucket 详情 (构造壳). GET /api/oss/{bucketName}", tags = { "z-oss" })
+    public Result<OssBucketDetailResponse> ossBucketDetail(@PathVariable @BizParam(name = "bucketName", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.PATH) String bucketName) {
         OssBucketDetailResponse stub = new OssBucketDetailResponse(bucketName);
         return Result.success(stub);
     }
@@ -112,3 +117,6 @@ public class OssAliasController {
         return null;
     }
 }
+
+
+

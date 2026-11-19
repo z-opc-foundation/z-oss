@@ -1,6 +1,9 @@
 package com.zifang.z.oss.api.controller;
 
 import com.zifang.util.core.meta.Result;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import com.zifang.z.oss.common.exception.OssException;
 import com.zifang.z.oss.core.backup.BackupChainService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -50,8 +53,10 @@ public class BackupController {
      * @param objectKey 可选：指定对象 key；不给则用「前缀 + 原文件名 + 时间戳」
      */
     @PostMapping("/archive")
-    public Result<?> archive(@RequestParam("file") MultipartFile file,
-                             @RequestParam(value = "objectKey", required = false) String objectKey)
+    @BizApi(summary = "POST /api/v1/backup/archive — 归档一份备份（multipart 文件），并执行滚动保留", description = "POST /api/v1/backup/archive — 归档一份备份（multipart 文件），并执行滚动保留。", tags = { "z-oss" })
+    public Result<?> archive(@RequestParam("file") @BizParam(name = "file", type = BizField.FieldType.STRING, description = "备份文件（必填）", position = BizParam.Position.QUERY) MultipartFile file,
+                             @RequestParam(value = "objectKey", required = false)
+                             @BizParam(name = "objectKey", type = BizField.FieldType.STRING, description = "可选：指定对象 key；不给则用「前缀 + 原文件名 + 时间戳」", position = BizParam.Position.QUERY) String objectKey)
             throws IOException {
         BackupChainService chain = requireChain();
         String originalName = file.getOriginalFilename() == null
@@ -81,6 +86,7 @@ public class BackupController {
 
     /** GET /api/v1/backup/list — 当前保留的备份（最新在前）。 */
     @GetMapping("/list")
+    @BizApi(summary = "GET /api/v1/backup/list — 当前保留的备份（最新在前）", description = "GET /api/v1/backup/list — 当前保留的备份（最新在前）。", tags = { "z-oss" })
     public Result<List<Map<String, Object>>> list() {
         BackupChainService chain = requireChain();
         List<Map<String, Object>> body = new ArrayList<>();
@@ -97,6 +103,7 @@ public class BackupController {
 
     /** GET /api/v1/backup/stats — 备份链计数（失败可见的抓手）。 */
     @GetMapping("/stats")
+    @BizApi(summary = "GET /api/v1/backup/stats — 备份链计数（失败可见的抓手）", description = "GET /api/v1/backup/stats — 备份链计数（失败可见的抓手）。", tags = { "z-oss" })
     public Result<Map<String, Object>> stats() {
         return Result.success(requireChain().stats());
     }
@@ -114,3 +121,6 @@ public class BackupController {
         return name.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 }
+
+
+

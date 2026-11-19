@@ -2,6 +2,7 @@ package com.zifang.z.oss.core.domain.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zifang.z.meta.api.annotation.BizMethod;
 import com.zifang.z.oss.common.exception.ObjectException;
 import com.zifang.z.oss.core.domain.entity.OssBucket;
 import com.zifang.z.oss.core.domain.entity.OssObject;
@@ -39,6 +40,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "uploadObject", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public OssObject uploadObject(String bucketName, String objectKey, InputStream inputStream,
                                   long size, String contentType, Long userId) {
         OssBucket bucket = bucketService.validateBucket(bucketName, userId);
@@ -78,6 +80,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "downloadObject", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public InputStream downloadObject(String bucketName, String objectKey, Long userId) {
         bucketService.validateBucket(bucketName, userId);
         OssObject object = getObject(bucketName, objectKey, userId);
@@ -92,6 +95,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "openObjectStream", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public InputStream openObjectStream(String bucketName, String objectKey, long offset, long length) {
         try {
             return providerManager.provider().getObject(bucketName, objectKey, offset, length);
@@ -101,6 +105,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "getObjectByKey", module = "z-oss", description = "", operation = BizMethod.Operation.QUERY)
     public OssObject getObjectByKey(String bucketName, String objectKey) {
         return this.getOne(new LambdaQueryWrapper<OssObject>()
                 .eq(OssObject::getBucketName, bucketName)
@@ -108,6 +113,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "deleteObject", module = "z-oss", description = "", operation = BizMethod.Operation.DELETE)
     public void deleteObject(String bucketName, String objectKey, Long userId) {
         bucketService.validateBucket(bucketName, userId);
         // 这里不能走 getObject()：老数据里同一 (bucket,key) 可能有多行
@@ -130,6 +136,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "getObject", module = "z-oss", description = "", operation = BizMethod.Operation.QUERY)
     public OssObject getObject(String bucketName, String objectKey, Long userId) {
         return this.getOne(new LambdaQueryWrapper<OssObject>()
                 .eq(OssObject::getBucketName, bucketName)
@@ -138,6 +145,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "listObjects", module = "z-oss", description = "", operation = BizMethod.Operation.QUERY)
     public List<OssObject> listObjects(String bucketName, String prefix, Long userId) {
         bucketService.validateBucket(bucketName, userId);
 
@@ -154,6 +162,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "createFolder", module = "z-oss", description = "", operation = BizMethod.Operation.CREATE)
     public OssObject createFolder(String bucketName, String folderKey, Long userId) {
         OssBucket bucket = bucketService.validateBucket(bucketName, userId);
 
@@ -192,6 +201,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "copyObject", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public OssObject copyObject(String sourceBucketName, String sourceObjectKey,
                                 String destBucketName, String destObjectKey, Long userId) {
         bucketService.validateBucket(sourceBucketName, userId);
@@ -237,6 +247,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "batchDeleteObjects", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public void batchDeleteObjects(String bucketName, List<String> objectKeys, Long userId) {
         bucketService.validateBucket(bucketName, userId);
         for (String objectKey : objectKeys) {
@@ -245,6 +256,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "generatePresignedUrl", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public String generatePresignedUrl(String bucketName, String objectKey, int expires, Long userId) {
         bucketService.validateBucket(bucketName, userId);
         OssObject object = getObject(bucketName, objectKey, userId);
@@ -255,6 +267,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "initiateMultipart", module = "z-oss", description = "", operation = BizMethod.Operation.CREATE)
     public String initiateMultipart(String bucketName, String objectKey, String contentType, Long userId) {
         OssBucket bucket = bucketService.validateBucket(bucketName, userId);
         OssProvider provider = providerManager.provider();
@@ -267,6 +280,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "uploadPart", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public OssPartInfo uploadPart(String bucketName, String objectKey, String uploadId, int partNumber,
                                   InputStream inputStream, long size, String contentType, Long userId) {
         bucketService.validateBucket(bucketName, userId);
@@ -281,6 +295,7 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "completeMultipart", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public OssObject completeMultipart(String bucketName, String objectKey, String uploadId,
                                        List<OssPartInfo> parts, Long userId) {
         OssBucket bucket = bucketService.validateBucket(bucketName, userId);
@@ -319,12 +334,14 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
     }
 
     @Override
+    @BizMethod(name = "abortMultipart", module = "z-oss", description = "", operation = BizMethod.Operation.ACTION)
     public void abortMultipart(String bucketName, String objectKey, String uploadId, Long userId) {
         bucketService.validateBucket(bucketName, userId);
         providerManager.provider().abortMultipartUpload(bucketName, objectKey, uploadId);
     }
 
     @Override
+    @BizMethod(name = "getBucketStats", module = "z-oss", description = "", operation = BizMethod.Operation.QUERY)
     public Map<String, Object> getBucketStats(String bucketName, Long userId) {
         bucketService.validateBucket(bucketName, userId);
 
@@ -358,3 +375,6 @@ public class OssObjectServiceImpl extends ServiceImpl<OssObjectMapper, OssObject
         return lastSlash >= 0 ? objectKey.substring(lastSlash + 1) : objectKey;
     }
 }
+
+
+

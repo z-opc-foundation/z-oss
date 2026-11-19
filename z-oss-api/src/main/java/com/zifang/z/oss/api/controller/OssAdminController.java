@@ -3,18 +3,21 @@ package com.zifang.z.oss.api.controller;
 import com.zifang.ctc.sso.config.SsoContext;
 import com.zifang.ctc.sso.model.UserInfo;
 import com.zifang.util.core.meta.Result;
+import com.zifang.z.meta.api.annotation.BizApi;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizParam;
 import com.zifang.z.oss.core.domain.entity.OssBucket;
 import com.zifang.z.oss.core.domain.entity.OssObject;
 import com.zifang.z.oss.core.domain.entity.OssUser;
 import com.zifang.z.oss.core.domain.service.IOssBucketService;
 import com.zifang.z.oss.core.domain.service.IOssObjectService;
 import com.zifang.z.oss.core.domain.service.IOssUserService;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.annotation.Resource;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +72,7 @@ public class OssAdminController {
      * 不能降级成空列表冒充"有账号、桶为空"。
      */
     @GetMapping("/whoami")
+    @BizApi(summary = "平台登录身份 → z-oss 账号的映射结果", description = "平台登录身份 → z-oss 账号的映射结果。 未开户时 provisioned=false 且 success=false：这是\"这个账号在 z-oss 里没有身份\"， 不能降级成空列表冒充\"有账号、桶为空\"。", tags = { "z-oss" })
     public Result<Map<String, Object>> whoami() {
         UserInfo user = SsoContext.getCurrentUser();
         if (user == null || user.getUsername() == null) {
@@ -93,6 +97,7 @@ public class OssAdminController {
      * 当前身份名下的桶列表（等价于 z-oss {@code GET /api/v1/bucket} 的 list 分支，但不需要 AK/SK）。
      */
     @GetMapping("/buckets")
+    @BizApi(summary = "当前身份名下的桶列表（等价于 z-oss GET /api/v1/bucket 的 list 分支，但不需要 AK/SK）", description = "当前身份名下的桶列表（等价于 z-oss GET /api/v1/bucket 的 list 分支，但不需要 AK/SK）。", tags = { "z-oss" })
     public Result<List<OssBucket>> buckets() {
         return Result.success(bucketService.listUserBuckets(currentOssUserId()));
     }
@@ -107,7 +112,8 @@ public class OssAdminController {
      * 这里两路都取，页面上也分两栏显示。
      */
     @GetMapping("/bucket/detail")
-    public Result<Map<String, Object>> bucketDetail(@RequestParam String name) {
+    @BizApi(summary = "单个桶的详情 + 两份统计，<b>分别来自两个 service，不能只取一份</b>（实测源码）", description = "单个桶的详情 + 两份统计， 分别来自两个 service，不能只取一份 （实测源码）： IOssBucketService#getBucketStats 回的是桶元数据（region/acl/createTime/ physicalExists = 存储提供方那边这个桶真的存在吗 / activeProvider）， 而对象数与总大小在 IOssObjectService#getBucketStats 里 —— TASK-20260924-003 修的那个 500 就是把两者当成了一份（ObjectController 早先拿 bucketService 的返回值去读 objectCount，读到 null 直接 NPE）。 这里两路都取，页面上也分两栏显示。", tags = { "z-oss" })
+    public Result<Map<String, Object>> bucketDetail(@RequestParam @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String name) {
         Long userId = currentOssUserId();
         OssBucket bucket = bucketService.validateBucket(name, userId);
         Map<String, Object> out = new LinkedHashMap<>();
@@ -125,8 +131,10 @@ public class OssAdminController {
      * 对象列表。{@code prefix} 原样交给 service（z-oss 语义即"目录前缀"），本层不做拼接也不兜空。
      */
     @GetMapping("/objects")
-    public Result<List<OssObject>> objects(@RequestParam String name,
-                                          @RequestParam(required = false) String prefix) {
+    @BizApi(summary = "对象列表。prefix 原样交给 service（z-oss 语义即\"目录前缀\"），本层不做拼接也不兜空", description = "对象列表。prefix 原样交给 service（z-oss 语义即\"目录前缀\"），本层不做拼接也不兜空。", tags = { "z-oss" })
+    public Result<List<OssObject>> objects(@RequestParam @BizParam(name = "name", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String name,
+                                          @RequestParam(required = false)
+                                          @BizParam(name = "prefix", type = BizField.FieldType.STRING, description = "", position = BizParam.Position.QUERY) String prefix) {
         Long userId = currentOssUserId();
         bucketService.validateBucket(name, userId);
         return Result.success(objectService.listObjects(name, prefix, userId));
@@ -150,3 +158,6 @@ public class OssAdminController {
         return ossUser.getId();
     }
 }
+
+
+

@@ -1,40 +1,55 @@
 package com.zifang.z.oss.core.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizModel;
 
 import java.time.LocalDateTime;
 
 /**
  * 分片上传实体
  */
+@BizModel(name = "分片上传实体", module = "z-oss", description = "分片上传实体")
 @TableName("oss_multipart")
 public class OssMultipart {
 
     @TableId(type = IdType.AUTO)
+    @BizField(name = "主键", type = BizField.FieldType.INTEGER)
     private Long id;
 
+    @BizField(name = "分片上传会话ID", type = BizField.FieldType.STRING)
     private String uploadId;
 
+    @BizField(name = "桶ID", type = BizField.FieldType.INTEGER)
     private Long bucketId;
 
+    @BizField(name = "归并后的对象键", type = BizField.FieldType.STRING)
     private String objectKey;
 
+    @BizField(name = "发起者ID", type = BizField.FieldType.INTEGER)
     private Long userId;
 
+    @BizField(name = "分片大小（字节）", type = BizField.FieldType.INTEGER)
     private Long partSize;
 
+    @BizField(name = "总分片数", type = BizField.FieldType.INTEGER)
     private Integer totalParts;
 
+    @BizField(name = "已上传分片数", type = BizField.FieldType.INTEGER)
     private Integer uploadedParts;
 
+    @BizField(name = "状态 0进行中 1已完成 2已放弃", type = BizField.FieldType.INTEGER)
     private Integer status;
 
+    @BizField(name = "过期时间", type = BizField.FieldType.DATETIME)
     private LocalDateTime expireTime;
 
     @TableField(fill = FieldFill.INSERT)
+    @BizField(name = "创建时间", type = BizField.FieldType.DATETIME)
     private LocalDateTime createTime;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
+    @BizField(name = "更新时间", type = BizField.FieldType.DATETIME)
     private LocalDateTime updateTime;
 
     public Long getId() {
@@ -133,3 +148,4 @@ public class OssMultipart {
         this.updateTime = updateTime;
     }
 }
+

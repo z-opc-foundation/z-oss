@@ -1,33 +1,43 @@
 package com.zifang.z.oss.core.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizModel;
 
 import java.time.LocalDateTime;
 
 /**
  * OSS用户实体
  */
+@BizModel(name = "OSS用户实体", module = "z-oss", description = "OSS用户实体")
 @TableName("oss_user")
 public class OssUser {
 
     @TableId(type = IdType.AUTO)
+    @BizField(name = "主键", type = BizField.FieldType.INTEGER)
     private Long id;
 
+    @BizField(name = "用户名", type = BizField.FieldType.STRING)
     private String username;
 
+    @BizField(name = "Access Key", type = BizField.FieldType.STRING)
     private String accessKey;
 
+    @BizField(name = "Secret Key（加密存储）", type = BizField.FieldType.STRING)
     private String secretKey;
 
+    @BizField(name = "状态 0禁用 1启用", type = BizField.FieldType.INTEGER)
     private Integer status;
 
     @TableField(fill = FieldFill.INSERT)
+    @BizField(name = "创建时间", type = BizField.FieldType.DATETIME)
     private LocalDateTime createTime;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
+    @BizField(name = "更新时间", type = BizField.FieldType.DATETIME)
     private LocalDateTime updateTime;
 
-    @TableLogic
+    @TableLogic @BizField(name = "逻辑删除", type = BizField.FieldType.INTEGER)
     private Integer deleted;
 
     public Long getId() {
@@ -94,3 +104,4 @@ public class OssUser {
         this.deleted = deleted;
     }
 }
+
